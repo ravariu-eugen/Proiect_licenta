@@ -2,6 +2,8 @@
 # Cerinte functionale
 
 - Incarcare executabil
+  - Cod direct
+    - Transforma in imagine
   - Imagine docker
     - Runtime environment fixat
     - Fisiere fixe pentru intrari si iesiri
