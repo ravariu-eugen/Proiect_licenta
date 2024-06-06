@@ -1,0 +1,41 @@
+
+# Cerinte functionale
+
+- Incarcare executabil
+  - Cod direct
+    - Transforma in imagine
+  - Imagine docker
+    - Runtime environment fixat
+    - Fisiere fixe pentru intrari si iesiri
+- Incarcare date de intrare
+  - Set de date
+  - Parametrii de rulare
+  - Poate fi:
+    - Intreg – fiecare task primeste o copie intreaga
+    - Distribuit – fiecare task primeste o parte din set
+      - Un singur element
+      - O serie de elemente
+- Incarcare cheie api
+- Definire job
+  - Job = lista de task-uri
+  - Task = executabil + date de intrare
+    - Task-ul defineste setul de date de iesire care poate fi un set de date intreg sau imbinate
+      - Ex: taskul clasifica imagini in 3 clase; intoarce 3 foldere, fiecare continand fisiere cu numele imaginilor corespunzatoare
+  - Definire parametrii de rulare
+    - Timp limita
+    - Cost maxim de rulare
+    - Nr procesoare + memorie
+- Lansare job
+  - Rulate automat:
+    - Analiza de catre program a pietei
+    - Alegere piata de rulare
+    - Oprire cand costul devine prea mare
+    - Mutare instanta intr-o piata mai ieftina
+    - Salvare date produse de task-uri intermediare
+    - Analiza dependente pentru a permite rulare mai multe task-uri simultan
+- Urmarire progress
+  - Afisare output de consola de la instante
+  - Sumarizare progres
+  - Afisare stare instanre
+  - Primire rezultat
+- Descarcare date

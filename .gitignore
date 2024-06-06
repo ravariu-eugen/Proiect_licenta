@@ -1,0 +1,45 @@
+# Ignore the Go build cache
+*.go.build
+
+# Ignore the Go module cache
+go.mod
+go.sum
+
+# Ignore the Go test cache
+*.test
+
+# Ignore the Go binary
+*.exe
+
+# Ignore the Go generated files
+*.go.generated
+
+# Ignore the Go coverage files
+*.out
+*.coverprofile
+
+# Ignore the Go dependency management files
+Gopkg.toml
+Gopkg.lock
+dependencies.tsv
+
+# Ignore the Go editor-specific files
+*.swp
+*.swo
+*.swn
+*.pyc
+*.DS_Store
+*.class
+*.war
+*.jar
+*.ear
+*.zip
+*.tar
+*.gz
+*.tgz
+*.rar
+*.rpm
+
+
+temp
+.aws

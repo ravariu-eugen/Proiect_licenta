@@ -1,0 +1,11 @@
+version: '3'
+services:
+  classifier:
+    build:
+      context: ./image_classifier
+      dockerfile: Dockerfile
+
+  multiplier:
+    build:
+      context: ./number_multiplier
+      dockerfile: Dockerfile
