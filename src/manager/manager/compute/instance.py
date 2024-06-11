@@ -2,7 +2,6 @@ import boto3
 from botocore.exceptions import ClientError
 from flask import current_app
 
-logger = current_app.logger
 
 
 class InstanceWrapper:
@@ -46,7 +45,7 @@ class InstanceWrapper:
                                 default security group of the VPC is used.
         :return: A Boto3 Instance object that represents the newly created instance.
         """
-        logger.info(
+        current_app.logger.info(
             "Creating instance. "
             "Image: %s, "
             "Instance type: %s, "
@@ -69,11 +68,11 @@ class InstanceWrapper:
                 **instance_params, MinCount=1, MaxCount=1
             )[0]
             self.instance.wait_until_running()
-            logger.info("Created instance %s.", self.instance.id)
+            current_app.logger.info("Created instance %s.", self.instance.id)
 
             return self.instance
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't create instance with image %s, instance type %s, and key %s. "
                 "Here's why: %s: %s",
                 image.id,
@@ -89,10 +88,10 @@ class InstanceWrapper:
         Displays information about an instance and returns it as a dictionary.
         """
         if self.instance is None:
-            logger.info("No instance to display.")
+            current_app.logger.info("No instance to display.")
             return None
 
-        logger.info("Displaying instance %s.", self.instance.id)
+        current_app.logger.info("Displaying instance %s.", self.instance.id)
         try:
             self.instance.load()
             result = {
@@ -106,7 +105,7 @@ class InstanceWrapper:
             }
             return result
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't display your instance. Here's why: %s: %s",
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
@@ -119,18 +118,18 @@ class InstanceWrapper:
         Terminates an instance and waits for it to be in a terminated state.
         """
         if self.instance is None:
-            logger.info("No instance to terminate.")
+            current_app.logger.info("No instance to terminate.")
             return
-        logger.info("Terminating instance %s.", self.instance.id)
+        current_app.logger.info("Terminating instance %s.", self.instance.id)
         instance_id = self.instance.id
         try:
             self.instance.terminate()
-            logger.info("Waiting for termination of instance %s.", instance_id)
+            current_app.logger.info("Waiting for termination of instance %s.", instance_id)
             self.instance.wait_until_terminated()
-            logger.info("Terminated instance %s.", instance_id)
+            current_app.logger.info("Terminated instance %s.", instance_id)
             self.instance = None
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't terminate instance %s. Here's why: %s: %s",
                 instance_id,
                 err.response["Error"]["Code"],
@@ -145,18 +144,18 @@ class InstanceWrapper:
         :return: The response to the start request.
         """
         if self.instance is None:
-            logger.info("No instance to start.")
+            current_app.logger.info("No instance to start.")
             return
 
-        logger.info("Starting instance %s.", self.instance.id)
+        current_app.logger.info("Starting instance %s.", self.instance.id)
         try:
             response = self.instance.start()
-            logger.info("Waiting for start of instance %s.", self.instance.id)
+            current_app.logger.info("Waiting for start of instance %s.", self.instance.id)
             self.instance.wait_until_running()
-            logger.info("Started instance %s.", self.instance.id)
+            current_app.logger.info("Started instance %s.", self.instance.id)
             return response
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't start instance %s. Here's why: %s: %s",
                 self.instance.id,
                 err.response["Error"]["Code"],
@@ -171,18 +170,18 @@ class InstanceWrapper:
         :return: The response to the stop request.
         """
         if self.instance is None:
-            logger.info("No instance to stop.")
+            current_app.logger.info("No instance to stop.")
             return
 
-        logger.info("Stopping instance %s.", self.instance.id)
+        current_app.logger.info("Stopping instance %s.", self.instance.id)
         try:
             response = self.instance.stop()
-            logger.info("Waiting for stop of instance %s.", self.instance.id)
+            current_app.logger.info("Waiting for stop of instance %s.", self.instance.id)
             self.instance.wait_until_stopped()
-            logger.info("Stopped instance %s.", self.instance.id)
+            current_app.logger.info("Stopped instance %s.", self.instance.id)
             return response
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't stop instance %s. Here's why: %s: %s",
                 self.instance.id,
                 err.response["Error"]["Code"],
@@ -197,12 +196,12 @@ class InstanceWrapper:
         :param image_ids: The list of AMIs to look up.
         :return: A list of Boto3 Image objects that represent the requested AMIs.
         """
-        logger.info("Getting images %s.", image_ids)
+        current_app.logger.info("Getting images %s.", image_ids)
         try:
             images = list(self.ec2_resource.images.filter(ImageIds=image_ids))
             return images
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't get images. Here's why: %s: %s",
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
@@ -236,7 +235,7 @@ class InstanceWrapper:
             ):
                 inst_types += page["InstanceTypes"]
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't get instance types. Here's why: %s: %s",
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
@@ -244,3 +243,4 @@ class InstanceWrapper:
             raise
         else:
             return inst_types
+

@@ -2,10 +2,7 @@ version: '3'
 services:
   classifier:
     build:
-      context: ./image_classifier
+      context: ./image_classification
       dockerfile: Dockerfile
-
-  multiplier:
-    build:
-      context: ./number_multiplier
-      dockerfile: Dockerfile
+    volumes:
+      - ./output:/output

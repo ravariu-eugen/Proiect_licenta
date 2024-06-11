@@ -2,8 +2,6 @@ import boto3
 from botocore.exceptions import ClientError
 from flask import current_app
 
-logger = current_app.logger
-
 
 class ElasticIpWrapper:
     """Encapsulates Amazon Elastic Compute Cloud (Amazon EC2) Elastic IP address actions."""
@@ -33,20 +31,20 @@ class ElasticIpWrapper:
         :return: The newly created Elastic IP object. By default, the address is not
                  associated with any instance.
         """
-        logger.info("Allocating Elastic IP address.")
+        current_app.logger.info("Allocating Elastic IP address.")
         try:
             response = self.ec2_resource.meta.client.allocate_address(Domain="vpc")
-            logger.info("Allocated Elastic IP address %s.", response["AllocationId"])
+            current_app.logger.info("Allocated Elastic IP address %s.", response["AllocationId"])
 
             self.elastic_ip = self.ec2_resource.VpcAddress(response["AllocationId"])
-            logger.info(
+            current_app.logger.info(
                 "Associated Elastic IP address %s.", self.elastic_ip.allocation_id
             )
 
             return self.elastic_ip
 
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't allocate Elastic IP. Here's why: %s: %s",
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
@@ -65,13 +63,13 @@ class ElasticIpWrapper:
         """
         
         if self.elastic_ip is None:
-            logger.info("No Elastic IP to associate.")
+            current_app.logger.info("No Elastic IP to associate.")
             return
 
         try:
             response = self.elastic_ip.associate(InstanceId=instance.id)
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't associate Elastic IP %s with instance %s. Here's why: %s: %s",
                 self.elastic_ip.allocation_id,
                 instance.id,
@@ -88,16 +86,16 @@ class ElasticIpWrapper:
         """
 
         if self.elastic_ip is None:
-            logger.info("No Elastic IP to disassociate.")
+            current_app.logger.info("No Elastic IP to disassociate.")
             return
-        logger.info(
+        current_app.logger.info(
             "Disassociating Elastic IP %s from its instance.",
             self.elastic_ip.allocation_id,
         )
         try:
             self.elastic_ip.association.delete()
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't disassociate Elastic IP %s from its instance. Here's why: %s: %s",
                 self.elastic_ip.allocation_id,
                 err.response["Error"]["Code"],
@@ -110,19 +108,19 @@ class ElasticIpWrapper:
         Releases an Elastic IP address. After the Elastic IP address is released,
         it can no longer be used.
         """
-        logger.info("Releasing Elastic IP address %s.", self.elastic_ip.allocation_id)
+        current_app.logger.info("Releasing Elastic IP address %s.", self.elastic_ip.allocation_id)
         if self.elastic_ip is None:
-            logger.info("No Elastic IP to release.")
+            current_app.logger.info("No Elastic IP to release.")
             return
 
         try:
             self.elastic_ip.release()
-            logger.info(
+            current_app.logger.info(
                 "Released Elastic IP address %s.", self.elastic_ip.allocation_id
             )
 
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't release Elastic IP address %s. Here's why: %s: %s",
                 self.elastic_ip.allocation_id,
                 err.response["Error"]["Code"],

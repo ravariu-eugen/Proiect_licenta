@@ -2,8 +2,6 @@ import boto3
 from botocore.exceptions import ClientError
 from flask import current_app
 
-logger = current_app.logger
-
 
 class SecurityGroupWrapper:
     """Encapsulates Amazon Elastic Compute Cloud (Amazon EC2) security group actions."""
@@ -33,15 +31,15 @@ class SecurityGroupWrapper:
         :param group_description: The description of the security group to create.
         :return: A Boto3 SecurityGroup object that represents the newly created security group.
         """
-        logger.info("Creating security group %s.", group_name)
+        current_app.logger.info("Creating security group %s.", group_name)
         try:
             self.security_group = self.ec2_resource.create_security_group(
                 GroupName=group_name, Description=group_description
             )
-            logger.info("Created security group %s.", self.security_group.id)
+            current_app.logger.info("Created security group %s.", self.security_group.id)
             return self.security_group
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't create security group %s. Here's why: %s: %s",
                 group_name,
                 err.response["Error"]["Code"],
@@ -58,9 +56,9 @@ class SecurityGroupWrapper:
         :return: The response to the authorization request. The 'Return' field of the
                  response indicates whether the request succeeded or failed.
         """
-        logger.info("Authorizing inbound rules for %s.", self.security_group.id)
+        current_app.logger.info("Authorizing inbound rules for %s.", self.security_group.id)
         if self.security_group is None:
-            logger.info("No security group to update.")
+            current_app.logger.info("No security group to update.")
             return
 
         try:
@@ -76,10 +74,10 @@ class SecurityGroupWrapper:
             response = self.security_group.authorize_ingress(
                 IpPermissions=ip_permissions
             )
-            logger.info("Authorized inbound rules for %s.", self.security_group.id)
+            current_app.logger.info("Authorized inbound rules for %s.", self.security_group.id)
             return response
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't authorize inbound rules for %s. Here's why: %s: %s",
                 self.security_group.id,
                 err.response["Error"]["Code"],
@@ -92,10 +90,10 @@ class SecurityGroupWrapper:
         Retrieves information about the security group.
         """
         if self.security_group is None:
-            logger.info("No security group to describe.")
+            current_app.logger.info("No security group to describe.")
             return
 
-        logger.info("Getting data for security group %s.", self.security_group.id)
+        current_app.logger.info("Getting data for security group %s.", self.security_group.id)
         try:
             return {
                 "GroupName": self.security_group.group_name,
@@ -104,7 +102,7 @@ class SecurityGroupWrapper:
                 "InboundPermissions": self.security_group.ip_permissions,
             }
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't get data for security group %s. Here's why: %s: %s",
                 self.security_group.id,
                 err.response["Error"]["Code"],
@@ -116,17 +114,17 @@ class SecurityGroupWrapper:
         """
         Deletes the security group.
         """
-        logger.info("Deleting security group %s.", self.security_group.id)
+        current_app.logger.info("Deleting security group %s.", self.security_group.id)
         if self.security_group is None:
-            logger.info("No security group to delete.")
+            current_app.logger.info("No security group to delete.")
             return
 
         group_id = self.security_group.id
         try:
             self.security_group.delete()
-            logger.info("Deleted security group %s.", group_id)
+            current_app.logger.info("Deleted security group %s.", group_id)
         except ClientError as err:
-            logger.error(
+            current_app.logger.error(
                 "Couldn't delete security group %s. Here's why: %s: %s",
                 group_id,
                 err.response["Error"]["Code"],
