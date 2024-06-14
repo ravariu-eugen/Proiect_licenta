@@ -1,12 +1,14 @@
 import boto3
 from botocore.exceptions import ClientError
-from flask import current_app
+import logging
+
+logger = logging.getLogger("main")
 
 
 class SecurityGroupWrapper:
     """Encapsulates Amazon Elastic Compute Cloud (Amazon EC2) security group actions."""
 
-    def __init__(self, ec2_resource, security_group=None):
+    def __init__(self, region):
         """
         :param ec2_resource: A Boto3 Amazon EC2 resource. This high-level resource
                              is used to create additional high-level objects
@@ -14,13 +16,9 @@ class SecurityGroupWrapper:
         :param security_group: A Boto3 SecurityGroup object. This is a high-level object
                                that wraps security group actions.
         """
-        self.ec2_resource = ec2_resource
-        self.security_group = security_group
-
-    @classmethod
-    def from_resource(cls):
-        ec2_resource = boto3.resource("ec2")
-        return cls(ec2_resource)
+        self.ec2_resource = boto3.resource("ec2", region_name=region)
+        self.ec2_client = boto3.client("ec2", region_name=region)
+        self.security_group = None
 
     def create(self, group_name, group_description):
         """
@@ -31,15 +29,25 @@ class SecurityGroupWrapper:
         :param group_description: The description of the security group to create.
         :return: A Boto3 SecurityGroup object that represents the newly created security group.
         """
-        current_app.logger.info("Creating security group %s.", group_name)
+        logger.info("Creating security group %s.", group_name)
+        response = self.ec2_client.describe_security_groups()
         try:
+            
+            # delete if it already exists
+            existing_group = next((group for group in response['SecurityGroups'] if group['GroupName'] == group_name), None)
+            if existing_group:
+                logger.info("Security group %s - %s already exists.", group_name, existing_group['GroupId'])
+                self.ec2_client.delete_security_group(GroupName=group_name)
+
+
+            # create
             self.security_group = self.ec2_resource.create_security_group(
                 GroupName=group_name, Description=group_description
             )
-            current_app.logger.info("Created security group %s.", self.security_group.id)
+            logger.info("Created security group %s.", self.security_group.id)
             return self.security_group
         except ClientError as err:
-            current_app.logger.error(
+            logger.error(
                 "Couldn't create security group %s. Here's why: %s: %s",
                 group_name,
                 err.response["Error"]["Code"],
@@ -56,9 +64,9 @@ class SecurityGroupWrapper:
         :return: The response to the authorization request. The 'Return' field of the
                  response indicates whether the request succeeded or failed.
         """
-        current_app.logger.info("Authorizing inbound rules for %s.", self.security_group.id)
+        logger.info("Authorizing inbound rules for %s.", self.security_group.id)
         if self.security_group is None:
-            current_app.logger.info("No security group to update.")
+            logger.info("No security group to update.")
             return
 
         try:
@@ -74,10 +82,10 @@ class SecurityGroupWrapper:
             response = self.security_group.authorize_ingress(
                 IpPermissions=ip_permissions
             )
-            current_app.logger.info("Authorized inbound rules for %s.", self.security_group.id)
+            logger.info("Authorized inbound rules for %s.", self.security_group.id)
             return response
         except ClientError as err:
-            current_app.logger.error(
+            logger.error(
                 "Couldn't authorize inbound rules for %s. Here's why: %s: %s",
                 self.security_group.id,
                 err.response["Error"]["Code"],
@@ -90,10 +98,10 @@ class SecurityGroupWrapper:
         Retrieves information about the security group.
         """
         if self.security_group is None:
-            current_app.logger.info("No security group to describe.")
+            logger.info("No security group to describe.")
             return
 
-        current_app.logger.info("Getting data for security group %s.", self.security_group.id)
+        logger.info("Getting data for security group %s.", self.security_group.id)
         try:
             return {
                 "GroupName": self.security_group.group_name,
@@ -102,7 +110,7 @@ class SecurityGroupWrapper:
                 "InboundPermissions": self.security_group.ip_permissions,
             }
         except ClientError as err:
-            current_app.logger.error(
+            logger.error(
                 "Couldn't get data for security group %s. Here's why: %s: %s",
                 self.security_group.id,
                 err.response["Error"]["Code"],
@@ -114,17 +122,17 @@ class SecurityGroupWrapper:
         """
         Deletes the security group.
         """
-        current_app.logger.info("Deleting security group %s.", self.security_group.id)
+        logger.info("Deleting security group %s.", self.security_group.id)
         if self.security_group is None:
-            current_app.logger.info("No security group to delete.")
+            logger.info("No security group to delete.")
             return
 
         group_id = self.security_group.id
         try:
             self.security_group.delete()
-            current_app.logger.info("Deleted security group %s.", group_id)
+            logger.info("Deleted security group %s.", group_id)
         except ClientError as err:
-            current_app.logger.error(
+            logger.error(
                 "Couldn't delete security group %s. Here's why: %s: %s",
                 group_id,
                 err.response["Error"]["Code"],
