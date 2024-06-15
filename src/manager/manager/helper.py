@@ -1,3 +1,5 @@
+import urllib.request
+
 def is_valid_region(region: str) -> bool:
     """
     Check if the given region is a valid AWS region.
@@ -28,3 +30,13 @@ def is_valid_region(region: str) -> bool:
         "sa-east-1",
     ]
     return region in valid_regions
+
+
+def current_IP() -> str:
+    """
+    Get the current IP address of the machine.
+
+    Returns:
+        str: The current IP address of the machine.
+    """
+    return urllib.request.urlopen("https://api.ipify.org").read().decode("utf8").strip()
