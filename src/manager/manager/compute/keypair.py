@@ -27,7 +27,7 @@ class KeyPairWrapper:
         self.key_name = None
 
 
-    def create_keypair(self, key_name):
+    def create_keypair(self, key_name, key_type="rsa"):
         """
         Creates a key pair that can be used to securely connect to an EC2 instance.
         The returned key pair contains private key information that cannot be retrieved
@@ -43,7 +43,7 @@ class KeyPairWrapper:
             # check if key already exists
             self.ec2_client.delete_key_pair(KeyName=key_name)
             
-            self.key_pair = self.ec2_resource.create_key_pair(KeyName=key_name)
+            self.key_pair = self.ec2_resource.create_key_pair(KeyName=key_name, KeyType=key_type)
             logger.info("Created key %s.", self.key_pair.name)
             self.key_file_path = os.path.join(
                 self.key_file_dir.name, f"{self.key_pair.name}.pem"
