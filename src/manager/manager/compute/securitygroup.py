@@ -10,11 +10,7 @@ class SecurityGroupWrapper:
 
     def __init__(self, region):
         """
-        :param ec2_resource: A Boto3 Amazon EC2 resource. This high-level resource
-                             is used to create additional high-level objects
-                             that wrap low-level Amazon EC2 service actions.
-        :param security_group: A Boto3 SecurityGroup object. This is a high-level object
-                               that wraps security group actions.
+        :param region: The region in which the security group is created.
         """
         self.ec2_resource = boto3.resource("ec2", region_name=region)
         self.ec2_client = boto3.client("ec2", region_name=region)
@@ -27,25 +23,35 @@ class SecurityGroupWrapper:
 
         :param group_name: The name of the security group to create.
         :param group_description: The description of the security group to create.
-        :return: A Boto3 SecurityGroup object that represents the newly created security group.
         """
         logger.info("Creating security group %s.", group_name)
         response = self.ec2_client.describe_security_groups()
         try:
-            
-            # delete if it already exists
-            existing_group = next((group for group in response['SecurityGroups'] if group['GroupName'] == group_name), None)
-            if existing_group:
-                logger.info("Security group %s - %s already exists.", group_name, existing_group['GroupId'])
-                self.ec2_client.delete_security_group(GroupName=group_name)
 
+            # check if it already exists
+            existing_group = next(
+                (
+                    group
+                    for group in response["SecurityGroups"]
+                    if group["GroupName"] == group_name
+                ),
+                None,
+            )
+            # delete if it already exists
+            if existing_group:
+                logger.info(
+                    "Security group %s - %s already exists.",
+                    group_name,
+                    existing_group["GroupId"],
+                )
+                self.ec2_client.delete_security_group(GroupName=group_name)
 
             # create
             self.security_group = self.ec2_resource.create_security_group(
                 GroupName=group_name, Description=group_description
             )
+
             logger.info("Created security group %s.", self.security_group.id)
-            return self.security_group
         except ClientError as err:
             logger.error(
                 "Couldn't create security group %s. Here's why: %s: %s",
@@ -77,7 +83,14 @@ class SecurityGroupWrapper:
                     "FromPort": 22,
                     "ToPort": 22,
                     "IpRanges": [{"CidrIp": f"{ssh_ingress_ip}/32"}],
-                }
+                },
+                {
+                    # HTTP ingress open to only the specified IP address.
+                    "IpProtocol": "tcp",
+                    "FromPort": 8080,
+                    "ToPort": 8080,
+                    "IpRanges": [{"CidrIp": f"{ssh_ingress_ip}/32"}],
+                },
             ]
             response = self.security_group.authorize_ingress(
                 IpPermissions=ip_permissions
