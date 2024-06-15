@@ -4,6 +4,9 @@ import logging
 logger = logging.getLogger("main")
 
 
+
+
+
 class InstanceWrapper:
     """Encapsulates Amazon Elastic Compute Cloud (Amazon EC2) instance actions."""
 
@@ -18,7 +21,7 @@ class InstanceWrapper:
         self.ec2_resource = boto3.resource("ec2", region_name=region)
         self.instance = None
 
-    def create(self, image, instance_type, key_pair, security_groups=None):
+    def create(self, image, instance_type, key_pair, userData = None, security_groups=None):
         """
         Creates a new EC2 instance. The instance starts immediately after
         it is created.
@@ -56,6 +59,7 @@ class InstanceWrapper:
                 "ImageId": image.id,
                 "InstanceType": instance_type,
                 "KeyName": key_pair.name,
+                "UserData": userData,
             }
             if security_groups is not None:
                 instance_params["SecurityGroupIds"] = [sg.id for sg in security_groups]
@@ -105,7 +109,6 @@ class InstanceWrapper:
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
             )
-            raise
             raise
 
     def terminate(self):
