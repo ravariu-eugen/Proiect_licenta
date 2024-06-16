@@ -1,13 +1,12 @@
 from manager.compute.instance import InstanceWrapper
 from manager.compute.keypair import KeyPairWrapper
 from manager.compute.securitygroup import SecurityGroupWrapper
-from manager.compute.elasticIP import ElasticIpWrapper
 
 import boto3
-import urllib.request
 import paramiko
 import logging
-import helper
+import manager.helper
+
 logger = logging.getLogger("main")
 
 
@@ -17,14 +16,12 @@ class InstanceManager:
         self.inst_wrapper = InstanceWrapper(region)
         self.key_wrapper = KeyPairWrapper(region)
         self.sg_wrapper = SecurityGroupWrapper(region)
-        self.eip_wrapper = ElasticIpWrapper(region)
         self.ssm_client = boto3.client("ssm", region_name=region)
         self.region = region
         self.name = name
 
         self.key_pair_name = name + "-kp"
         self.security_group_name = name + "-sg"
-        self.elastic_ip_name = name + "-eip"
 
     def cleanup(self):
         """
@@ -34,14 +31,10 @@ class InstanceManager:
         4. Delete the previously created key pair.
         """
         logger.info("Let's clean everything up. This example created these resources:")
-        logger.info(f"\tElastic IP: {self.eip_wrapper.elastic_ip.allocation_id}")
         logger.info(f"\tInstance: {self.inst_wrapper.instance.id}")
         logger.info(f"\tSecurity group: {self.sg_wrapper.security_group.id}")
         logger.info(f"\tKey pair: {self.key_wrapper.key_pair.name}")
-        self.eip_wrapper.disassociate()
-        logger.info("Disassociated the Elastic IP from the instance.")
-        self.eip_wrapper.release()
-        logger.info("Released the Elastic IP.")
+
         logger.info("Terminating the instance and waiting for it to terminate...")
         self.inst_wrapper.terminate()
         logger.info("Instance terminated.")
@@ -58,13 +51,13 @@ class InstanceManager:
         3. Displays information about the security group.
         """
 
-        security_group = self.sg_wrapper.create(sg_name, description)
+        self.sg_wrapper.create(sg_name, description)
         logger.info(
-            f"Created security group {security_group.group_name} in your default "
-            f"VPC {security_group.vpc_id}.\n"
+            f"Created security group {self.sg_wrapper.security_group.group_name} in your default "
+            f"VPC {self.sg_wrapper.security_group.vpc_id}.\n"
         )
 
-        current_ip_address = helper.current_IP()
+        current_ip_address = manager.helper.current_IP()
         logger.info("current_ip_address: %s", current_ip_address)
 
         response = self.sg_wrapper.authorize_ingress(current_ip_address)
@@ -110,18 +103,8 @@ class InstanceManager:
                 f"ec2-user@{self.eip_wrapper.elastic_ip.public_ip}"
             )
 
-    def associate_elastic_ip(self):
-        """
-        Allocates an Elastic IP address and associates it with the instance.
-        """
-
-        elastic_ip = self.eip_wrapper.allocate()
-        logger.info(f"Allocated static Elastic IP address: {elastic_ip.public_ip}.")
-        self.eip_wrapper.associate(self.inst_wrapper.instance)
-        logger.info(f"Associated your Elastic IP with your instance.")
-
     def getIP(self):
-        return self.eip_wrapper.elastic_ip.public_ip
+        return self.inst_wrapper.instance.public_ip_address
 
     def stop_instance(self):
         """
@@ -140,13 +123,18 @@ class InstanceManager:
         logger.info("Your instance is running.")
 
     def create(
-        self, instance_type="t2.micro", image_id="ami-08a0d1e16fc3f61ea", userData=None
+        self, instance_type="t2.micro", 
+        image_id="ami-08a0d1e16fc3f61ea", 
+        userData=None
     ):
+        # create keypair
         self.key_wrapper.create_keypair(self.key_pair_name, "ed25519")
+        
+        # create security group
         self.create_security_group(self.security_group_name, "My security group")
 
+        # create instance
         self.create_instance(image_id, instance_type, userData)
-        self.associate_elastic_ip()
 
     def run_command(self, command):
         logger.info("Let's run a command on your instance and see what happens.")
