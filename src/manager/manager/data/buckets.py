@@ -46,7 +46,7 @@ def create_bucket(bucket_name, region=None):
         True if the bucket is created, False otherwise.
     """
     try:
-        if region is 'us-east-1' or region is None:
+        if region == 'us-east-1' or region is None:
             boto3.client("s3").create_bucket(Bucket=bucket_name)
         else:
             location = {"LocationConstraint": region}

@@ -17,6 +17,7 @@ class InstanceManager:
         self.key_wrapper = KeyPairWrapper(region)
         self.sg_wrapper = SecurityGroupWrapper(region)
         self.ssm_client = boto3.client("ssm", region_name=region)
+        
         self.region = region
         self.name = name
 
@@ -25,10 +26,9 @@ class InstanceManager:
 
     def cleanup(self):
         """
-        1. Disassociate and delete the previously created Elastic IP.
-        2. Terminate the previously created instance.
-        3. Delete the previously created security group.
-        4. Delete the previously created key pair.
+        1. Terminate the previously created instance.
+        2. Delete the previously created security group.
+        3. Delete the previously created key pair.
         """
         logger.info("Let's clean everything up. This example created these resources:")
         logger.info(f"\tInstance: {self.inst_wrapper.instance.id}")

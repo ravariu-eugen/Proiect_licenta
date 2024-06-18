@@ -1,10 +1,8 @@
 import boto3
 from botocore.exceptions import ClientError
 import logging
+
 logger = logging.getLogger("main")
-
-
-
 
 
 class InstanceWrapper:
@@ -19,9 +17,12 @@ class InstanceWrapper:
                            wraps instance actions.
         """
         self.ec2_resource = boto3.resource("ec2", region_name=region)
+        self.ec2_client = boto3.client("ec2", region_name=region)
         self.instance = None
 
-    def create(self, image, instance_type, key_pair, userData = None, security_groups=None):
+    def create(
+        self, image, instance_type, key_pair, userData=None, security_groups=None
+    ):
         """
         Creates a new EC2 instance. The instance starts immediately after
         it is created.
@@ -196,7 +197,18 @@ class InstanceWrapper:
         """
         logger.info("Getting images %s.", image_ids)
         try:
-            images = list(self.ec2_resource.images.filter(ImageIds=image_ids))
+            images = list(
+                self.ec2_resource.images.filter(
+                    Owners=["self"], 
+                    Filters=[{"Name": "name", "Values": ["docker*"]}]
+                )
+            )
+            logger.info("Got %s images.", len(images))
+            for image in images:
+
+                logger.info("Got image %s.", image.id)
+                logger.info("Got image %s.", image.name)
+
             return images
         except ClientError as err:
             logger.error(
@@ -241,4 +253,3 @@ class InstanceWrapper:
             raise
         else:
             return inst_types
-

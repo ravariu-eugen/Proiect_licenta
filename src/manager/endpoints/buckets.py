@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from manager.region import is_valid_region
+from manager.helper import is_valid_region
 import manager.data.buckets as buckets
 
 

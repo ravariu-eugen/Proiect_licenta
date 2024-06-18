@@ -1,0 +1,11 @@
+{
+  "name": "job1",
+  "image": "job1",
+  "input_data": "input.txt",
+  "output_files": ["output.txt"],
+  "shared_data": ["shared.txt"],
+  "resources": {
+    "cpu": 1,
+    "memory": 1
+  }
+}
