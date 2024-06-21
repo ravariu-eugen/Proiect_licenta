@@ -13,7 +13,10 @@ services:
       context: .
     ports:
       - 8080:8080
-
+    environment:
+      - AWS_ACCESS_KEY_ID=AKIA2UC3AT3EGG3R726A
+      - AWS_SECRET_ACCESS_KEY=bIdk9cOQ6nn1Ux1czHJDpr5UMnFq7CePVsp5BOsg
+# http://localhost:8080
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
 # start the database before your application. The `db-data` volume persists the
