@@ -9,32 +9,28 @@ import software.amazon.awssdk.services.ec2.model.RunInstancesResponse;
 
 
 public class InstanceWrapper {
-    Region region = Region.US_EAST_1;
-    Ec2Client ec2 = Ec2Client.builder()
-            .region(region)
-            .build();
-    String amiId = "ami-0c55b159cbfafe1f0";
-    InstanceType instanceType = InstanceType.T1_MICRO;
+    Region region;
+    Ec2Client client;
     Instance instance;
 
-    public InstanceWrapper(Region region, String amiId, InstanceType instanceType) {
+    public InstanceWrapper(Ec2Client client, Region region) {
         this.region = region;
-        this.amiId = amiId;
-        this.instanceType = instanceType;
-
+        this.client = client;
     }
 
-    public void createInstance() {
+    public void create(String amiId, InstanceType instanceType, String userData) {
         RunInstancesRequest runRequest = RunInstancesRequest.builder()
                 .imageId(amiId)
                 .instanceType(instanceType)
-                .maxCount(1)
-                .minCount(1)
+                .maxCount(1).minCount(1)
                 .build();
 
-        RunInstancesResponse response = ec2.runInstances(runRequest);
+        RunInstancesResponse response = client.runInstances(runRequest);
         instance = response.instances().getFirst();
     }
 
+    public void delete() {
+        client.terminateInstances(instance);
+    }
 
 }
