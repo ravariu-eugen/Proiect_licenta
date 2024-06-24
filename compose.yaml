@@ -1,0 +1,17 @@
+
+services:
+  server:
+    build:
+      context: .
+    ports:
+      - 8080:8080
+    secrets:
+      - aws_access_key_id
+      - aws_secret_access_key
+
+
+secrets:
+  aws_access_key_id:
+    file: ./aws_access_key_id
+  aws_secret_access_key:
+    file: ./aws_secret_access_key

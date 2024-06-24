@@ -1,15 +1,18 @@
-#build stage
-FROM golang:alpine AS builder
-RUN apk add --no-cache git
-WORKDIR /go/src/app
-COPY . .
-RUN go get -d -v ./...
-RUN go build -o /go/bin/app -v ./...
+#
+# Build stage
+#
+FROM eclipse-temurin:22-jdk-jammy AS build
+ENV HOME=/usr/app
+RUN mkdir -p $HOME
+WORKDIR $HOME
+ADD . $HOME
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -f $HOME/pom.xml dependency:go-offline clean verify
 
-#final stage
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-COPY --from=builder /go/bin/app /app
-ENTRYPOINT /app
-LABEL Name=proiectlicenta Version=0.0.1
+#
+# Package stage
+#
+FROM eclipse-temurin:22-jre-jammy
+ARG JAR_FILE=/usr/app/target/*.jar
+COPY --from=build $JAR_FILE /app/runner.jar
 EXPOSE 8080
+ENTRYPOINT java -jar /app/runner.jar

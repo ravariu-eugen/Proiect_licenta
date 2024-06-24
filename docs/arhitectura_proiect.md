@@ -15,3 +15,13 @@ Informatii necesare:
     - verific tipul de eroare
 - starea tutoror task-urilor dintr-un job
   - ce fac cand un task esueaza
+
+
+
+
+
+Arhitectura: 
+
+un proces manager central care creeaza instantele
+
+fiecare instanta are un proces worker care controleaza containerele
