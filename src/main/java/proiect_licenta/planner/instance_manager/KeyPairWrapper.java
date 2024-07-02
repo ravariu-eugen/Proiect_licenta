@@ -34,14 +34,11 @@ public class KeyPairWrapper {
 	}
 
 	public KeyPairWrapper(Ec2Client client, String keyName, String keyType) {
-		logger.info("keyName: {}", keyName);
-		logger.info("keyType: {}", keyType);
-		logger.info("region: {}", client.serviceClientConfiguration().region());
+		logger.info("create key pair: {} {}", keyName, keyType);
 		this.client = client;
 		this.keyName = keyName;
 		this.keyType = keyType;
 
-		logger.info("create key pair: {}", keyName);
 		deleteKeyPair();
 		// create request
 		CreateKeyPairRequest request =
@@ -93,7 +90,7 @@ public class KeyPairWrapper {
 	}
 
 	public void delete() {
-
+		logger.info("delete key pair: {}", keyName);
 		// delete key pair file
 		deleteFile();
 		// delete key pair

@@ -10,4 +10,4 @@ cd /worker
 pwd > index.html
 git help >> index.html
 
-./worker
+#./worker
