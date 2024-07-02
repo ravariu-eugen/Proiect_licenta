@@ -13,6 +13,9 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -f $HOME/pom.xml dependency:go-of
 #
 FROM eclipse-temurin:22-jre-jammy
 ARG JAR_FILE=/usr/app/target/*.jar
+RUN pwd
 COPY --from=build $JAR_FILE /app/runner.jar
 EXPOSE 8080
-ENTRYPOINT java -jar /app/runner.jar
+WORKDIR /app
+ADD src/main/resources resources
+ENTRYPOINT java -Dlog4j2.configurationFile=file:resources/log4j2.properties -jar runner.jar
