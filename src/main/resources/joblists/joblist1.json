@@ -1,0 +1,20 @@
+{
+  "jobs" : [
+    {
+      "name" : "job1",
+      "description" : "job 1 description",
+      "type" : "Processing",
+      "inputDataSets" : [],
+      "sharedDataSets" : [],
+      "outputDataSets" : []
+    },
+    {
+      "name" : "job2",
+      "description" : "job 2 description",
+      "type" : "Processing",
+      "inputDataSets" : [],
+      "sharedDataSets" : [],
+      "outputDataSets" : []
+    }
+  ]
+}
