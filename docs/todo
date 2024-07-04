@@ -1,0 +1,35 @@
+1. upload dataset archives and code archives from the client to aws s3
+
+2. send a job list from the client
+
+2.1. types of jobs:
+- data processing
+    - parameters
+        - 1 input dataset
+        - 1 executable image
+        - n shared datasets
+        - m output datasets
+        - minimum memory
+    - for each task in the input dataset, create a container
+    - each task produces m folders, for each output
+    - merge the outputs of each task into m output datasets that are saved in s3
+
+- data manipulation
+    - merge datasets
+    - copy dataset
+    - rename dataset
+    - delete datasets
+
+3. create an instance manager based on the job details
+
+    3.1. choose a region based on cost/availability
+
+4. load datasets and code into the instances
+
+5. for each task in the input dataset, send a task execution request to an instance
+
+6. for each task in execution, wait for a completion request
+
+    6.1. if the task was completed successfully or
+
+    6.2. if the task is stopped due to
