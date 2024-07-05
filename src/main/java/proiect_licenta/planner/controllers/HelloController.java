@@ -1,4 +1,4 @@
-package proiect_licenta.planner;
+package proiect_licenta.planner.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
