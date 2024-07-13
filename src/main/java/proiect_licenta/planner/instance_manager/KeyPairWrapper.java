@@ -41,14 +41,13 @@ public class KeyPairWrapper {
 
 		deleteKeyPair();
 		// create request
-		CreateKeyPairRequest request =
-				CreateKeyPairRequest.builder()
+		var request = CreateKeyPairRequest.builder()
 						.keyType(keyType)
 						.keyName(keyName)
 						.build();
 
 		// send request
-		CreateKeyPairResponse response = client.createKeyPair(request);
+		var response = client.createKeyPair(request);
 
 		try {
 			// save key pair
@@ -82,7 +81,7 @@ public class KeyPairWrapper {
 	}
 
 	private void deleteKeyPair() {
-		DeleteKeyPairRequest deleteRequest = DeleteKeyPairRequest
+		var deleteRequest = DeleteKeyPairRequest
 				.builder()
 				.keyName(keyName)
 				.build();

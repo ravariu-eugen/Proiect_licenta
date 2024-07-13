@@ -2,9 +2,9 @@ package proiect_licenta.planner.helper;
 
 import org.jetbrains.annotations.NotNull;
 import proiect_licenta.planner.Application;
-import proiect_licenta.planner.HelloController;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 
 import java.io.*;
 import java.net.URI;
@@ -50,6 +50,10 @@ public class Helper {
         return AwsBasicCredentials.create(awsAccessKey, awsSecretKey);
     }
 
+
+    public static String getBucketName() {
+        return "rav123bucket";
+    }
     public static String getResourceAsString(String resource) {
         try (InputStream inputStream = Application.class.getClassLoader().getResourceAsStream(resource);
              BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
