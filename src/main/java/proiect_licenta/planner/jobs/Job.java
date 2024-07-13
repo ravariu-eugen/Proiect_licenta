@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.*;
+import java.util.function.Function;
 
 public abstract class Job {
 
@@ -43,6 +44,16 @@ public abstract class Job {
 	public abstract List<String> getOutputs();
 
 
+	public boolean dependsOn(Job job) {
+		List<String> dependencies = getDependencies();
+		List<String> jobOutputs = job.getOutputs();
+		return dependencies.stream().anyMatch(jobOutputs::contains);
+	}
+
+	public abstract void launch();
+
+	public abstract void waitUntilFinished();
+
 	public static Job jobFactory(String jobJson) {
 		ObjectMapper mapper = new ObjectMapper();
 		try {
@@ -53,31 +64,27 @@ public abstract class Job {
 		}
 	}
 
-
 	public static Job jobFactory(Map<String, Object> jobMap) {
-		String name = (String) jobMap.get("name");
-		String description = (String) jobMap.get("description");
+
+		Map<String, Function<Map<String, Object>, Job>> jobBuilders = Map.of(
+				"processing", ProcessingJob::builder,
+				"copy", CopyJob::builder,
+				"rename", RenameJob::builder,
+				"delete", DeleteJob::builder,
+				"merge", MergeJob::builder
+		);
+
 		String type = (String) jobMap.get("type");
-
-		if (type.equalsIgnoreCase("processing")) {
-
-			String inputDataSet = (String) jobMap.get("inputDataSet");
-			List<String> sharedDataSets = (List<String>) jobMap.get("sharedDataSets");
-			if (sharedDataSets == null) {
-				sharedDataSets = new ArrayList<>();
-			}
-			List<String> outputDataSets = (List<String>) jobMap.get("outputDataSets");
-			if (outputDataSets == null) {
-				outputDataSets = new ArrayList<>();
-			}
-			Map<String, String> requirements = (Map<String, String>) jobMap.get("requirements");
-			if (requirements == null) {
-				requirements = new HashMap<>();
-			}
-			return new ProcessingJob(name, description, inputDataSet, sharedDataSets, outputDataSets, requirements);
-		} else if (type.equalsIgnoreCase("manipulation")) {
-
+		if (type == null) {
+			throw new IllegalArgumentException("Job type not specified");
 		}
-		return null;
+
+		Function<Map<String, Object>, Job> jobBuilder = jobBuilders.get(type.toLowerCase());
+		if (jobBuilder == null) {
+			throw new IllegalArgumentException("Unsupported job type: " + type);
+		}
+
+		logger.info("{} job", type);
+		return jobBuilder.apply(jobMap);
 	}
 }
