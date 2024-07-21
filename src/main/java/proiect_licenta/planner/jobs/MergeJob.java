@@ -1,28 +1,20 @@
 package proiect_licenta.planner.jobs;
 
-import org.jetbrains.annotations.NotNull;
+import proiect_licenta.planner.storage.Storage;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.StringJoiner;
 
 public class MergeJob extends Job {
 	private final List<String> inputDataSets;
 	private final String outputDataSet;
-	public MergeJob(String name, String description, List<String> inputDataSets, String outputDataSet) {
-		super(name, description);
+	public MergeJob(String name, String description, Storage storage, List<String> inputDataSets, String outputDataSet) {
+		super(name, description, storage);
 		this.inputDataSets = inputDataSets;
 		this.outputDataSet = outputDataSet;
 	}
 
-	public static @NotNull MergeJob builder(@NotNull Map<String, Object> jobMap) {
-		String name = (String) jobMap.get("name");
-		String description = (String) jobMap.get("description");
-		List<String> inputDataSets = (List<String>) jobMap.get("inputDataSets");
-		String outputDataSet = (String) jobMap.get("outputDataSet");
-		return new MergeJob(name, description, inputDataSets, outputDataSet);
-	}
+
 
 	@Override
 	public JobType getJobType() {

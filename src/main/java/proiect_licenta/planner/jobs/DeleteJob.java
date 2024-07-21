@@ -1,36 +1,18 @@
 package proiect_licenta.planner.jobs;
 
-import org.jetbrains.annotations.NotNull;
-import proiect_licenta.planner.storage.BucketStorage;
-import proiect_licenta.planner.helper.Helper;
+import proiect_licenta.planner.storage.Storage;
 
 import java.util.List;
-import java.util.Map;
 import java.util.StringJoiner;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class DeleteJob extends Job {
 	private final String inputDataSet;
-	private final BucketStorage bucketManager;
-	public DeleteJob(String name, String description, String inputDataSet) {
-		super(name, description);
+	public DeleteJob(String name, String description, Storage storage, String inputDataSet) {
+		super(name, description, storage);
 		this.inputDataSet = inputDataSet;
-		this.bucketManager = new BucketStorage(Helper.getBucketName());
 	}
 
-	public static @NotNull DeleteJob builder(@NotNull Map<String, Object> jobMap) {
 
-		String name = (String) jobMap.get("name");
-		if (name == null) throw new IllegalArgumentException("Job name cannot be null");
-
-		String description = (String) jobMap.get("description");
-
-		String inputDataSet = (String) jobMap.get("inputDataSet");
-		if (inputDataSet == null) throw new IllegalArgumentException("Input data set cannot be null");
-
-		return new DeleteJob(name, description, inputDataSet);
-	}
 	@Override
 	public JobType getJobType() {
 		return JobType.DELETE;
@@ -45,22 +27,14 @@ public class DeleteJob extends Job {
 	public List<String> getOutputs() {
 		return List.of();
 	}
-	private Future<Boolean> future;
+
 	@Override
 	public void launch() {
-
-		future = bucketManager.deleteObject(inputDataSet);
+		storage.delete(inputDataSet);
 	}
 
 	@Override
 	public void waitUntilFinished() {
-		try {
-			future.get();
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		} catch (ExecutionException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	@Override
