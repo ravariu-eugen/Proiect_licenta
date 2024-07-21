@@ -1,10 +1,8 @@
 package proiect_licenta.planner.storage;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
 
-public interface StorageInterface {
+public interface Storage {
 
 
 

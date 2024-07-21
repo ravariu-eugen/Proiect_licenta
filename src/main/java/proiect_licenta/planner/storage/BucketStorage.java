@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-public class BucketStorage implements StorageInterface {
+public class BucketStorage implements Storage {
 	private static final Logger logger = LogManager.getLogger();
 	private final S3AsyncClient client;
 	private final String name;
