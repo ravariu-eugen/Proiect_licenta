@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.*;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class ZipManager implements ArchiveManager {
@@ -26,6 +27,7 @@ public class ZipManager implements ArchiveManager {
 	}
 
 	private void archiveFile(String filePath, String archivePath, boolean append) {
+		logger.info("Archiving {} to {}", filePath, archivePath);
 		try (FileOutputStream fos = new FileOutputStream(archivePath, append);
 		     ZipOutputStream zos = new ZipOutputStream(fos)) {
 
@@ -48,7 +50,7 @@ public class ZipManager implements ArchiveManager {
 		archiveFile(filePath, archivePath, true);
 	}
 
-	private void archiveFolder(File folder, String parentFolder, ZipOutputStream zos) throws IOException {
+	public void archiveFolder(File folder, String parentFolder, ZipOutputStream zos) throws IOException {
 		for (File file : Objects.requireNonNull(folder.listFiles())) {
 			if (file.isDirectory()) {
 				archiveFolder(file, parentFolder + file.getName() + "/", zos);
@@ -61,6 +63,7 @@ public class ZipManager implements ArchiveManager {
 
 	@Override
 	public void addFolder(String folderPath, String archivePath) {
+		logger.info("Adding {} to {}", folderPath, archivePath);
 		File folderToArchive = new File(folderPath);
 		try (FileOutputStream fos = new FileOutputStream(archivePath);
 		     ZipOutputStream zos = new ZipOutputStream(fos)) {
@@ -82,6 +85,26 @@ public class ZipManager implements ArchiveManager {
 
 	@Override
 	public void extractArchive(String archivePath, String extractPath) {
-
+		try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(archivePath))) {
+			ZipEntry entry = zipIn.getNextEntry();
+			while (entry != null) {
+				File entryDestination = new File(extractPath, entry.getName());
+				if (entry.isDirectory()) {
+					entryDestination.mkdirs();
+				} else {
+					entryDestination.getParentFile().mkdirs();
+					try (FileOutputStream fos = new FileOutputStream(entryDestination)) {
+						byte[] buffer = new byte[4096];
+						int len;
+						while ((len = zipIn.read(buffer)) > 0) {
+							fos.write(buffer, 0, len);
+						}
+					}
+				}
+				entry = zipIn.getNextEntry();
+			}
+		} catch (IOException e) {
+			logger.error(e);
+		}
 	}
 }
