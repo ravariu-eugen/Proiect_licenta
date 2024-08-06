@@ -1,13 +1,13 @@
-package proiect_licenta.planner.execution;
+package proiect_licenta.planner.execution.worker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import proiect_licenta.planner.execution.WorkerManager;
 import proiect_licenta.planner.execution.analysis.InstanceConfiguration;
 import proiect_licenta.planner.execution.analysis.MarketAnalyzer;
 import proiect_licenta.planner.execution.ec2_instance.EC2InstanceManager;
-import proiect_licenta.planner.execution.worker.Worker;
-import proiect_licenta.planner.execution.worker_request.AllocationStrategy;
-import proiect_licenta.planner.execution.worker_request.ExistingSetUp;
+import proiect_licenta.planner.execution.worker.worker_request.AllocationStrategy;
+import proiect_licenta.planner.execution.worker.worker_request.ExistingSetUp;
 import proiect_licenta.planner.helper.AmiMap;
 import proiect_licenta.planner.jobs.ProcessingJob;
 

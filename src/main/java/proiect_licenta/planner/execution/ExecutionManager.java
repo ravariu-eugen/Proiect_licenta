@@ -2,35 +2,15 @@ package proiect_licenta.planner.execution;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import proiect_licenta.planner.archive.ArchiveManager;
-import proiect_licenta.planner.archive.ZipManager;
 import proiect_licenta.planner.dataset.Dataset;
-import proiect_licenta.planner.execution.analysis.InstanceConfiguration;
-import proiect_licenta.planner.execution.analysis.MarketAnalyzer;
-import proiect_licenta.planner.execution.ec2_instance.EC2InstanceManager;
-import proiect_licenta.planner.execution.worker.Worker;
-import proiect_licenta.planner.helper.AmiMap;
+import proiect_licenta.planner.execution.worker.WorkerPool;
 import proiect_licenta.planner.jobs.ProcessingJob;
-import proiect_licenta.planner.storage.Storage;
 import proiect_licenta.planner.task.Task;
-import proiect_licenta.planner.task.TaskComplete;
-import proiect_licenta.planner.task.TaskError;
 import proiect_licenta.planner.task.TaskResult;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.ec2.model.InstanceType;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
-import static java.util.stream.Collectors.toList;
 
 
 public class ExecutionManager {

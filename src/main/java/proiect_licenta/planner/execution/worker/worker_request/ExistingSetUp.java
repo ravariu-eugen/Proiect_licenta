@@ -1,4 +1,4 @@
-package proiect_licenta.planner.execution.worker_request;
+package proiect_licenta.planner.execution.worker.worker_request;
 
 import proiect_licenta.planner.execution.worker.Worker;
 import proiect_licenta.planner.jobs.ProcessingJob;

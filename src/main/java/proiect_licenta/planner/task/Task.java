@@ -3,7 +3,7 @@ package proiect_licenta.planner.task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.dataset.TaskData;
-import proiect_licenta.planner.execution.WorkerPool;
+import proiect_licenta.planner.execution.worker.WorkerPool;
 import proiect_licenta.planner.execution.worker.Worker;
 import proiect_licenta.planner.execution.worker.WorkerState;
 import proiect_licenta.planner.jobs.ProcessingJob;
