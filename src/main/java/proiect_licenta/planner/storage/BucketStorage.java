@@ -2,7 +2,7 @@ package proiect_licenta.planner.storage;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import proiect_licenta.planner.helper.Helper;
+import proiect_licenta.planner.helper.ClientHelper;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -24,7 +24,7 @@ public class BucketStorage implements Storage {
 	private final String name;
 
 	public BucketStorage(String bucketName) {
-		AwsCredentials awsCredentials = Helper.getCredentials();
+		AwsCredentials awsCredentials = ClientHelper.getCredentials();
 		AwsCredentialsProvider provider = StaticCredentialsProvider.create(awsCredentials);
 		this.client = S3AsyncClient.builder()
 				.credentialsProvider(provider)
@@ -64,17 +64,26 @@ public class BucketStorage implements Storage {
 	}
 
 	@Override
+	public boolean putBytes(String objectName, byte[] bytes) {
+		// TODO
+		return false;
+	}
+
+	@Override
 	public boolean delete(String objectName) {
+		// TODO
 		return false;
 	}
 
 	@Override
 	public boolean copy(String initialObjectName, String copyObjectName) {
+		// TODO
 		return false;
 	}
 
 	@Override
 	public boolean rename(String initialObjectName, String copyObjectName) {
+		// TODO
 		return false;
 	}
 
@@ -86,6 +95,11 @@ public class BucketStorage implements Storage {
 		);
 		logger.info(response.join().sdkHttpResponse().statusCode());
 		return response.join().sdkHttpResponse().isSuccessful();
+	}
+
+	@Override
+	public byte[] getBytes(String objectName) {
+		return new byte[0];
 	}
 
 	public Future<Boolean> deleteObject(String objectName) {

@@ -1,11 +1,10 @@
-package proiect_licenta.planner.instance_manager;
+package proiect_licenta.planner.execution.ec2_instance;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest;
-import software.amazon.awssdk.services.ec2.model.CreateKeyPairResponse;
 import software.amazon.awssdk.services.ec2.model.DeleteKeyPairRequest;
 
 import java.io.IOException;
@@ -34,7 +33,7 @@ public class KeyPairWrapper {
 	}
 
 	public KeyPairWrapper(Ec2Client client, String keyName, String keyType) {
-		logger.info("create key pair: {} {}", keyName, keyType);
+		logger.debug("create key pair: {} {}", keyName, keyType);
 		this.client = client;
 		this.keyName = keyName;
 		this.keyType = keyType;
@@ -89,7 +88,7 @@ public class KeyPairWrapper {
 	}
 
 	public void delete() {
-		logger.info("delete key pair: {}", keyName);
+		logger.debug("delete key pair: {}", keyName);
 		// delete key pair file
 		deleteFile();
 		// delete key pair

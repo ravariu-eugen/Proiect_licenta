@@ -4,6 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.archive.ArchiveManager;
 import proiect_licenta.planner.archive.ZipManager;
+import proiect_licenta.planner.execution.fleet.FleetManager;
+import proiect_licenta.planner.execution.instance_factory.InstanceWrapper;
 import proiect_licenta.planner.helper.FileDeleter;
 import proiect_licenta.planner.helper.Helper;
 import proiect_licenta.planner.jobs.JobList;
@@ -32,9 +34,18 @@ public class TestRun {
 
 		FileDeleter.deleteAllFilesInFolder("arch");
 		// code archives
-		manager.archiveFolder("data/test_tasks/number_multiplier", "arch/number_multiplier.zip");
-		// data archives
-		manager.archiveFolder("data/test_data/numbers", "arch/numbers.zip");
+
+		List<String> tasks = List.of(
+			"number_multiplier", "copy", "longtask"
+		);
+
+		List<String> data = List.of(
+			"numbers"
+		);
+		tasks.forEach(task -> manager.archiveFolder("data/test_tasks/" + task, "arch/" + task + ".zip"));
+
+		data.forEach(task -> manager.archiveFolder("data/test_data/" + task, "arch/" + task + ".zip"));
+
 	}
 
 
@@ -75,7 +86,7 @@ public class TestRun {
 		// 1. load data into storage
 		logger.info("Loading data into storage");
 		loadData();
-		logger.info(storage.listObjects());
+		logger.info("Storage objects: {}", storage.listObjects());
 
 
 		// 2. load job lists
@@ -87,5 +98,22 @@ public class TestRun {
 		for (JobList jobList : jobLists) {
 			jobList.launch();
 		}
+
+
+
+		// 4. get results from storage
+		logger.info("Getting results from storage");
+		logger.info("Storage objects: {}", storage.listObjects());
+	}
+
+
+	public void testFleet(){
+		FleetManager manager = new FleetManager();
+		logger.info("testFleet");
+		var list = manager.createSpotFleet();
+
+		list.stream().map(InstanceWrapper::new).forEach(i -> {
+			logger.info(i.toString());
+		});
 	}
 }

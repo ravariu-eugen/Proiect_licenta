@@ -1,5 +1,9 @@
 package proiect_licenta.planner.archive;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 public interface ArchiveManager {
 
 
@@ -22,11 +26,13 @@ public interface ArchiveManager {
 	/**
 	 * Archives a folder at the specified folder path and saves it to the specified archive path.
 	 *
-	 * @param folderPath  the path of the folder to be archived
+	 * @param sourceFolderPath  the path of the folder to be archived
 	 * @param archivePath the path where the archived folder will be saved
 	 */
-	void archiveFolder(String folderPath, String archivePath);
+	void archiveFolder(String sourceFolderPath, String archivePath);
 
+
+	void addFolder(String folderPath, OutputStream outputStream);
 
 	/**
 	 * Adds a folder to the archive at the specified folder path and saves it to the specified archive path.
@@ -45,7 +51,5 @@ public interface ArchiveManager {
 	void extractArchive(String archivePath, String extractPath);
 
 
-
-
-
+	void extractArchive(InputStream inputStream, String extractPath) throws IOException;
 }

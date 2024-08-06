@@ -2,9 +2,6 @@ package proiect_licenta.planner.helper;
 
 import org.jetbrains.annotations.NotNull;
 import proiect_licenta.planner.Application;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 
 import java.io.*;
 import java.net.URI;
@@ -30,8 +27,15 @@ public class Helper {
     }
 
     public static @NotNull String getSecret(String secretName) {
+
+        String secretFolder = "/run/secrets/";
+
+        if (!new File(secretFolder).exists()) {
+            secretFolder = "./Secrets/";
+        }
+
         try {
-            File file = new File("/run/secrets/" + secretName);
+            File file = new File(secretFolder + secretName);
             StringBuilder sb = new StringBuilder();
             try (Scanner scanner = new Scanner(file)) {
                 while (scanner.hasNextLine()) {
@@ -42,12 +46,6 @@ public class Helper {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static @NotNull AwsCredentials getCredentials() {
-        String awsAccessKey = getSecret("aws_access_key_id");
-        String awsSecretKey = getSecret("aws_secret_access_key");
-        return AwsBasicCredentials.create(awsAccessKey, awsSecretKey);
     }
 
 
@@ -62,4 +60,12 @@ public class Helper {
             throw new RuntimeException(e);
         }
     }
+
+
+    private static final String userDataFile = "instanceUserData.txt";
+    public static String getUserData() {
+        return Helper.getResourceAsString(userDataFile);
+    }
+
+
 }

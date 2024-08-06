@@ -1,9 +1,9 @@
 import os
 
 # define the folder where the files are located
-input_folder = '/input'
+input_folder = '/run/input'
 # define the folder where the files will be written
-output_folder = '/output'
+output_folder = '/run/output'
 
 # create the output folder if it does not exist
 if not os.path.exists(output_folder):

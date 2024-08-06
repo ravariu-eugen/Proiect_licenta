@@ -2,8 +2,8 @@
 FROM python:3.9
 
 # Create /input and /output folders
-RUN mkdir /input
-RUN mkdir /output
+RUN mkdir /run/input
+RUN mkdir /run/output
 
 
 # Set the working directory in the container

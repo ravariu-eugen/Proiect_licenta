@@ -2,15 +2,16 @@ package proiect_licenta.planner.jobs;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import proiect_licenta.planner.jobs.requirements.JobRequirements;
 import proiect_licenta.planner.storage.Storage;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 
 public class JobFactory {
@@ -31,106 +32,165 @@ public class JobFactory {
 		}
 	}
 
+
+	private List<String> parseReq(Map<String, Object> jobMap, String key) {
+		Object req = jobMap.get(key);
+		switch (req) {
+			case null -> {
+				return Collections.emptyList();
+			}
+			case String s -> {
+				return Collections.singletonList(s);
+			}
+			case List list -> {
+				List<String> reqList = new ArrayList<>();
+				for (Object obj : list) {
+					if (obj instanceof String) {
+						reqList.add((String) obj);
+					} else {
+						throw new IllegalArgumentException("Job " + key + " must contain only strings");
+					}
+				}
+				return Collections.unmodifiableList(reqList);
+			}
+			default -> throw new IllegalArgumentException("Job " + key + " must be a string or a list of strings");
+		}
+	}
+
+	private String parseLine(Map<String, Object> jobMap, String key) {
+		Object req = jobMap.get(key);
+		switch (req) {
+			case null -> {
+				return null;
+			}
+			case String s -> {
+				return s;
+			}
+			default -> throw new IllegalArgumentException("Job " + key + " must be a string");
+		}
+	}
+
+	private JobRequirements extractJobRequirements(Map<String, Object> jobMap) {
+		return new JobRequirements(
+				parseReq(jobMap, "input"),
+				parseReq(jobMap, "shared"),
+				parseReq(jobMap, "output")
+		);
+	}
+
 	public Job apply(Map<String, Object> jobMap) {
 
-		Map<String, Function<Map<String, Object>, Job>> jobBuilders = Map.of(
-				"processing", this::processingJob,
-				"copy", this::copyJob,
-				"rename", this::renameJob,
-				"delete", this::deleteJob,
-				"merge", this::mergeJob
-		);
+		String type = parseLine(jobMap, "type");
+		if (type == null) throw new IllegalArgumentException("Job type cannot be null");
+		String name = parseLine(jobMap, "name");
+		if (name == null) throw new IllegalArgumentException("Job name cannot be null");
+		String description = (String) jobMap.get("description");
 
-		String type = (String) jobMap.get("type");
-		if (type == null) {
-			logger.error("Job type not specified");
-			throw new IllegalArgumentException("Job type not specified");
+		JobRequirements req = extractJobRequirements(jobMap);
+		if (!req.isValid(storage)) {
+			//throw new IllegalArgumentException("Job requirements are not valid");
 		}
 
-		Function<Map<String, Object>, Job> jobBuilder = jobBuilders.get(type.toLowerCase());
-		if (jobBuilder == null) {
-			throw new IllegalArgumentException("Unsupported job type: " + type);
-		}
 
 		logger.info("{} job", type);
-		return jobBuilder.apply(jobMap);
+		return switch (type.toLowerCase()) {
+			case "processing" -> processingJob(name, description, req, jobMap);
+			case "copy" -> copyJob(name, description, req);
+			case "rename" -> renameJob(name, description, req);
+			case "delete" -> deleteJob(name, description, req);
+			case "merge" -> mergeJob(name, description, req);
+			default -> throw new IllegalArgumentException("Unknown job type: " + type);
+		};
 	}
 
 
+	public @NotNull ProcessingJob processingJob(String name, String description, JobRequirements requirements, @NotNull Map<String, Object> jobMap) {
 
 
-	public @NotNull ProcessingJob processingJob(@NotNull Map<String, Object> jobMap) {
+		String image = parseLine(jobMap, "image");
+		if (image == null) throw new IllegalArgumentException("Image cannot be null");
 
-		String name = (String) jobMap.get("name");
-		if (name == null) throw new IllegalArgumentException("Job name cannot be null");
+		Map<String, String> otherRequirements = (Map<String, String>) jobMap.get("requirements");
+		if (otherRequirements == null) otherRequirements = Collections.emptyMap();
 
-		String description = (String) jobMap.get("description");
 
-		String inputDataSet = (String) jobMap.get("inputDataSet");
-		if (inputDataSet == null) throw new IllegalArgumentException("Input data set cannot be null");
+		if (requirements.inputs().size() != 1)
+			throw new IllegalArgumentException("Input data set must be a single file");
+		String inputDataSet = requirements.inputs().getFirst();
+		List<String> sharedDataSets = requirements.shared();
+		List<String> outputDataSets = requirements.outputs();
+		if (outputDataSets.isEmpty())
+			throw new IllegalArgumentException("Output data set missing");
 
-		List<String> sharedDataSets = (List<String>) jobMap.get("sharedDataSets");
-		if (sharedDataSets == null) sharedDataSets = Collections.emptyList();
-
-		List<String> outputDataSets = (List<String>) jobMap.get("outputDataSets");
-		if (outputDataSets == null) outputDataSets = Collections.emptyList();
-		if (outputDataSets.isEmpty()) throw new IllegalArgumentException("Output data sets cannot be empty");
-
-		Map<String, String> requirements = (Map<String, String>) jobMap.get("requirements");
-		if (requirements == null) requirements = Collections.emptyMap();
-
-		return new ProcessingJob(name, description, storage, inputDataSet, sharedDataSets, outputDataSets, requirements);
+		return new ProcessingJob(name, description, storage,
+				image,
+				inputDataSet,
+				sharedDataSets,
+				outputDataSets,
+				otherRequirements);
 	}
 
-	public @NotNull CopyJob copyJob(@NotNull Map<String, Object> jobMap) {
+	public @NotNull CopyJob copyJob(String name, String description, JobRequirements requirements) {
 
-		String name = (String) jobMap.get("name");
-		if (name == null) throw new IllegalArgumentException("Job name cannot be null");
 
-		String description = (String) jobMap.get("description");
+		if (requirements.inputs().size() != 1)
+			throw new IllegalArgumentException("Input data set must be a single file");
+		String inputDataSet = requirements.inputs().getFirst();
 
-		String inputDataSet = (String) jobMap.get("inputDataSet");
-		if (inputDataSet == null) throw new IllegalArgumentException("Input data set cannot be null");
+		if (requirements.outputs().size() != 1)
+			throw new IllegalArgumentException("Output data set must be a single file");
+		String outputDataSet = requirements.outputs().getFirst();
 
-		String outputDataSet = (String) jobMap.get("outputDataSet");
-		if (outputDataSet == null) throw new IllegalArgumentException("Output data set cannot be null");
+		if (!requirements.shared().isEmpty())
+			throw new IllegalArgumentException("Shared data sets are not supported for copy jobs");
 
 		return new CopyJob(name, description, storage, inputDataSet, outputDataSet);
 	}
 
-	public @NotNull DeleteJob deleteJob(@NotNull Map<String, Object> jobMap) {
+	public @NotNull DeleteJob deleteJob(String name, String description, JobRequirements requirements) {
 
-		String name = (String) jobMap.get("name");
-		if (name == null) throw new IllegalArgumentException("Job name cannot be null");
+		if (requirements.inputs().size() != 1)
+			throw new IllegalArgumentException("Input data set must be a single file");
+		String inputDataSet = requirements.inputs().getFirst();
 
-		String description = (String) jobMap.get("description");
+		if (!requirements.outputs().isEmpty())
+			throw new IllegalArgumentException("Output data sets are not supported for delete jobs");
 
-		String inputDataSet = (String) jobMap.get("inputDataSet");
-		if (inputDataSet == null) throw new IllegalArgumentException("Input data set cannot be null");
+		if (!requirements.shared().isEmpty())
+			throw new IllegalArgumentException("Shared data sets are not supported for delete jobs");
 
 		return new DeleteJob(name, description, storage, inputDataSet);
 	}
 
-	public @NotNull MergeJob mergeJob(@NotNull Map<String, Object> jobMap) {
-		String name = (String) jobMap.get("name");
-		String description = (String) jobMap.get("description");
-		List<String> inputDataSets = (List<String>) jobMap.get("inputDataSets");
-		String outputDataSet = (String) jobMap.get("outputDataSet");
+	public @NotNull MergeJob mergeJob(String name, String description, JobRequirements requirements) {
+
+		List<String> inputDataSets = requirements.inputs();
+		if (inputDataSets.size() <= 2)
+			throw new IllegalArgumentException("Input data sets must be at least two files");
+
+		if (requirements.outputs().size() != 1)
+			throw new IllegalArgumentException("Output data set must be a single file");
+		String outputDataSet = requirements.outputs().getFirst();
+
+		if (!requirements.shared().isEmpty())
+			throw new IllegalArgumentException("Shared data sets are not supported for merge jobs");
+
 		return new MergeJob(name, description, storage, inputDataSets, outputDataSet);
 	}
 
-	public @NotNull RenameJob renameJob(@NotNull Map<String, Object> jobMap) {
+	public @NotNull RenameJob renameJob(String name, String description, JobRequirements requirements) {
 
-		String name = (String) jobMap.get("name");
-		if (name == null) throw new IllegalArgumentException("Job name cannot be null");
 
-		String description = (String) jobMap.get("description");
+		if (requirements.inputs().size() != 1)
+			throw new IllegalArgumentException("Input data set must be a single file");
+		String inputDataSet = requirements.inputs().getFirst();
 
-		String inputDataSet = (String) jobMap.get("inputDataSet");
-		if (inputDataSet == null) throw new IllegalArgumentException("Input data set cannot be null");
+		if (requirements.outputs().size() != 1)
+			throw new IllegalArgumentException("Output data set must be a single file");
+		String outputDataSet = requirements.outputs().getFirst();
 
-		String outputDataSet = (String) jobMap.get("outputDataSet");
-		if (outputDataSet == null) throw new IllegalArgumentException("Output data set cannot be null");
+		if (!requirements.shared().isEmpty())
+			throw new IllegalArgumentException("Shared data sets are not supported for rename jobs");
 
 		return new RenameJob(name, description, storage, inputDataSet, outputDataSet);
 	}

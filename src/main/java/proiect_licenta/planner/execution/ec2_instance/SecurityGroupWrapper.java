@@ -1,4 +1,4 @@
-package proiect_licenta.planner.instance_manager;
+package proiect_licenta.planner.execution.ec2_instance;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,15 +18,29 @@ public class SecurityGroupWrapper {
 
 	private String securityGroupID;
 
-	public SecurityGroupWrapper(Ec2Client client, String securityGroupName, String description) {
+	public SecurityGroupWrapper(Ec2Client client, String securityGroupNamePrefix, String description) {
 		this.client = client;
-		this.securityGroupName = securityGroupName;
-		if (checkIfExists(securityGroupName)) {
-			deleteSecurityGroup();
+		int i = 0;
+		String sgName = securityGroupNamePrefix + i;
+		logger.debug("securityGroupNamePrefix: {}", securityGroupNamePrefix);
+		while (checkIfExists(sgName)) {
+			try {
+				deleteSecurityGroup(sgName);
+				logger.debug("Deleted security group {}", sgName);
+				break;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+				i++;
+				sgName = securityGroupNamePrefix + i;
+
+			}
+
 		}
-		logger.info("create security group: {}", securityGroupName);
+
+		this.securityGroupName = sgName;
+
+		logger.debug("create security group: {}", securityGroupName);
 		create(client, securityGroupName, description);
-		logger.info("created security group: {}", securityGroupID);
 	}
 
 	private void create(Ec2Client client, String securityGroupName, String description) {
@@ -41,28 +55,35 @@ public class SecurityGroupWrapper {
 	}
 
 	private boolean checkIfExists(String groupName) {
-		logger.info("checkIfExists: {}", groupName);
 		DescribeSecurityGroupsRequest describeRequest = DescribeSecurityGroupsRequest.builder().build();
 		DescribeSecurityGroupsResponse response = client.describeSecurityGroups(describeRequest);
-		return response.securityGroups().stream()
-				.anyMatch(sg -> sg.groupName().equals(groupName));
+
+
+		var names = response.securityGroups().stream().map(SecurityGroup::groupName).toList();
+		return names.contains(groupName);
 	}
 
-	private void deleteSecurityGroup() {
+	private void deleteSecurityGroup(String securityGroupName) throws Exception {
 		if (!checkIfExists(securityGroupName)) {
 			return;
 		}
-		logger.info("deleteIfExists: {}", securityGroupName);
+		logger.debug("deleteIfExists: {}", securityGroupName);
 		DeleteSecurityGroupRequest deleteRequest = DeleteSecurityGroupRequest.builder()
 				.groupName(securityGroupName).build();
-		client.deleteSecurityGroup(deleteRequest);
+		var response = client.deleteSecurityGroup(deleteRequest);
+
+		logger.debug(response.toString());
 
 	}
 
 
-	public void authorizeIngress(String ingressIP) {
-		logger.info("authorizeIngress: {}", ingressIP);
-		IpRange ipRange = IpRange.builder().cidrIp(ingressIP + "/32").build();
+
+	public void authorizeAll() {
+		authorizeIP("0.0.0.0/0");
+	}
+
+	private boolean authorizeIP(String IP){
+		IpRange ipRange = IpRange.builder().cidrIp(IP).build();
 
 		IpPermission ipPerm = IpPermission.builder()
 				.ipProtocol("tcp")
@@ -83,17 +104,27 @@ public class SecurityGroupWrapper {
 
 		AuthorizeSecurityGroupIngressResponse authResponse = client.authorizeSecurityGroupIngress(authRequest);
 
-		isCreated = authResponse.returnValue();
-		if (isCreated) {
-			logger.info("Successfully added ingress policy to Security Group {}", securityGroupName);
-		}
+		return authResponse.returnValue();
+	}
 
+	public void authorizeIngress(String ingressIP) {
+		logger.debug("authorizeIngress: {}", ingressIP);
+		boolean result = authorizeIP(ingressIP + "/32");
+		if (result) {
+			logger.info("Authorized ingress IP: {}", ingressIP);
+		}
 	}
 
 	public void delete() {
-		logger.info("delete: {}", securityGroupName);
-		DeleteSecurityGroupRequest request = DeleteSecurityGroupRequest.builder()
-				.groupName(securityGroupName).build();
-		client.deleteSecurityGroup(request);
+		try {
+			deleteSecurityGroup(securityGroupName);
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+	}
+
+
+	public String getSecurityGroupID() {
+		return securityGroupID;
 	}
 }

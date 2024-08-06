@@ -4,19 +4,32 @@
       "name" : "job1",
       "description" : "job 1 description",
       "type" : "Processing",
-      "imageArchive" : "image1.zip",
-      "inputDataSet" : "dataSet1.zip",
-      "sharedDataSets" : [],
-      "outputDataSets" : ["dataSet2.zip"]
+      "image" : "copy.zip",
+      "input" : "numbers.zip",
+      "shared" : ["numbers.zip"],
+      "output" : ["dataSet2.zip"],
+      "requirements" : {
+        "cpu" : "1",
+        "memory" : "1"
+      }
     },
     {
       "name" : "job2",
       "description" : "job 2 description",
       "type" : "Processing",
-      "imageArchive" : "image2.zip",
-      "inputDataSet" : "dataSet1.zip",
-      "sharedDataSets" : [],
-      "outputDataSets" : ["dataSet3.zip"]
+      "image" : "number_multiplier.zip",
+      "input" : "numbers.zip",
+      "shared" : [],
+      "output" : ["dataSet3.zip"]
+    },
+    {
+      "name" : "job3",
+      "description" : "job 3 description",
+      "type" : "Processing",
+      "image" : "longtask.zip",
+      "input" : "numbers.zip",
+      "shared" : [],
+      "output" : ["output1.zip", "output2.zip"]
     }
   ]
 }

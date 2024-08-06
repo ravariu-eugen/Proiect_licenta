@@ -12,20 +12,25 @@ import java.util.Map;
 public class ProcessingJob extends Job {
 	private final Logger logger = LogManager.getLogger();
 
-	private final String inputDataSet;
-	private final List<String> sharedDataSets;
-	private final List<String> outputDataSets;
+	private final String image;
+
+	private final String input;
+	private final List<String> shared;
+	private final List<String> output;
 	private final Map<String, String> requirements;
 	private ExecutionManager executionManager;
 
 	public ProcessingJob(String name, String description, Storage storage,
+						 String image,
 	                     String inputDataSet, List<String> sharedDataSets,
 	                     List<String> outputDataSets, Map<String, String> requirements) {
 		super(name, description, storage);
 
-		this.inputDataSet = inputDataSet;
-		this.sharedDataSets = sharedDataSets;
-		this.outputDataSets = outputDataSets;
+		this.image = image;
+
+		this.input = inputDataSet;
+		this.shared = sharedDataSets;
+		this.output = outputDataSets;
 		this.requirements = requirements;
 	}
 
@@ -39,7 +44,7 @@ public class ProcessingJob extends Job {
 	@Override
 	public void launch() {
 		// TODO
-		logger.info("Launching processing job {} with input data set {}", name, inputDataSet);
+		logger.info("Launching processing job {} with input data set {}", name, input);
 		logger.info(storage.listObjects());
 		executionManager.launch(this);
 	}
@@ -56,15 +61,15 @@ public class ProcessingJob extends Job {
 
 	@Override
 	public List<String> getDependencies() {
-		List<String> dependencies = new ArrayList<>(sharedDataSets.size() + 1);
-		dependencies.add(inputDataSet);
-		dependencies.addAll(sharedDataSets);
+		List<String> dependencies = new ArrayList<>(shared.size() + 1);
+		dependencies.add(input);
+		dependencies.addAll(shared);
 		return dependencies;
 	}
 
 	@Override
 	public List<String> getOutputs() {
-		return outputDataSets;
+		return output;
 	}
 
 	@Override
@@ -72,14 +77,23 @@ public class ProcessingJob extends Job {
 		return "ProcessingJob{" +
 				"name='" + name + '\'' +
 				", description='" + description + '\'' +
-				", inputDataSet='" + inputDataSet + '\'' +
-				", sharedDataSets=" + sharedDataSets +
-				", outputDataSets=" + outputDataSets +
+				", inputDataSet='" + input + '\'' +
+				", sharedDataSets=" + shared +
+				", outputDataSets=" + output +
 				", requirements=" + requirements +
 				'}';
 	}
 
-	public String getInputDataSet() {
-		return inputDataSet;
+	public String getInput() {
+		return input;
+	}
+
+
+	public List<String> getShared() {
+		return shared;
+	}
+
+	public String getImage() {
+		return image;
 	}
 }

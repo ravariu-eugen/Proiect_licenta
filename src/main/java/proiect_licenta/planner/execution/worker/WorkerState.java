@@ -1,4 +1,4 @@
-package proiect_licenta.planner.execution;
+package proiect_licenta.planner.execution.worker;
 
 public enum WorkerState {
 	ACTIVE,

@@ -1,13 +1,15 @@
 #!/bin/bash
-mkdir /input
-mkdir /output
-mkdir /shared
-mkdir /worker
-mkdir /code
-cd /worker
-#git clone https://github.com/ravariu-eugen/Proiect_licenta_worker
-#cd Proiect_licenta_worker
-pwd > index.html
-git help >> index.html
-
-#./worker
+mkdir app
+cd app
+mkdir upload
+mkdir images
+mkdir input
+mkdir output
+mkdir shared
+mkdir worker
+cd worker
+git clone https://github.com/ravariu-eugen/Proiect_licenta_worker
+cd Proiect_licenta_worker
+echo "hello" >> index.html
+#python3 -m http.server 8080
+./worker

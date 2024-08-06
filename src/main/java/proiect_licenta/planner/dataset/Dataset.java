@@ -41,7 +41,26 @@ public class Dataset {
 
 	}
 
+
+	public void saveDataset(String destinationDir) throws IOException {
+		// create a directory for the dataset
+		Path path = Files.createDirectories(Paths.get(destinationDir + "/" + objectName));
+
+
+		for (TaskData taskData : tasks) {
+			// save the task
+			String taskPath = path.toString() + "/" + taskData.name() + ".zip";
+			Files.createFile(Paths.get(taskPath));
+			try (var stream = Files.newOutputStream(Paths.get(taskPath))) {
+				stream.write(taskData.data());
+
+			}
+		}
+
+	}
+
 	private static @NotNull List<TaskData> getTasks(Stream<Path> stream) {
+
 		return stream
 				.filter(Files::isDirectory)
 				.map(Path::toAbsolutePath)

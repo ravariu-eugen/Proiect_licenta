@@ -49,7 +49,7 @@ public class Application {
 	public static void main(String[] args) {
 		TestRun testRun = new TestRun();
 		testRun.run();
-
+		//testRun.testFleet();
 
 
 	}

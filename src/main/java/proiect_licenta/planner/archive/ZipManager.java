@@ -62,11 +62,9 @@ public class ZipManager implements ArchiveManager {
 	}
 
 	@Override
-	public void addFolder(String folderPath, String archivePath) {
-		logger.info("Adding {} to {}", folderPath, archivePath);
+	public void addFolder(String folderPath, OutputStream outputStream) {
 		File folderToArchive = new File(folderPath);
-		try (FileOutputStream fos = new FileOutputStream(archivePath);
-		     ZipOutputStream zos = new ZipOutputStream(fos)) {
+		try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
 			archiveFolder(folderToArchive, "", zos);
 		} catch (IOException e) {
 			logger.error(e);
@@ -74,18 +72,39 @@ public class ZipManager implements ArchiveManager {
 	}
 
 	@Override
-	public void archiveFolder(String folderPath, String archivePath) {
+	public void addFolder(String folderPath, String archivePath) {
+		logger.info("Adding {} to {}", folderPath, archivePath);
+
+		try {
+			addFolder(folderPath, new FileOutputStream(archivePath));
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+
+	@Override
+	public void archiveFolder(String sourceFolderPath, String archivePath) {
 		// delete archive if it exists
 		File archive = new File(archivePath);
 		if (archive.exists()) {
 			archive.delete();
 		}
-		addFolder(folderPath, archivePath);
+		addFolder(sourceFolderPath, archivePath);
 	}
 
 	@Override
 	public void extractArchive(String archivePath, String extractPath) {
-		try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(archivePath))) {
+		try {
+			extractArchive(new FileInputStream(archivePath), extractPath);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void extractArchive(InputStream inputStream, String extractPath) throws IOException {
+		try (ZipInputStream zipIn = new ZipInputStream(inputStream)) {
 			ZipEntry entry = zipIn.getNextEntry();
 			while (entry != null) {
 				File entryDestination = new File(extractPath, entry.getName());

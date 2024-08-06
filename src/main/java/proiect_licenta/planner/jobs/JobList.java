@@ -4,13 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import proiect_licenta.planner.storage.StorageInterface;
+import proiect_licenta.planner.storage.Storage;
+import proiect_licenta.planner.execution.ExecutionManager;
 
 import java.util.*;
 
 public class JobList {
-	private static Logger logger = LogManager.getLogger();
-
+	private static final Logger logger = LogManager.getLogger();
+	private ExecutionManager executionManager;
 
 	public enum JobStatus {
 		PENDING,
@@ -19,7 +20,7 @@ public class JobList {
 		FAILED
 
 	}
-	private StorageInterface storage;
+	private Storage storage;
 	private static class JobWrapper {
 		public Job job;
 		public JobStatus status;
@@ -43,9 +44,8 @@ public class JobList {
 		return jobs.stream().map(j -> j.job).toList();
 	}
 
-	private static List<Job.JobType> deleteJobTypes = List.of(Job.JobType.DELETE, Job.JobType.MERGE);
 	public boolean readAfterDelete() {
-
+		var deleteJobTypes = List.of(Job.JobType.DELETE, Job.JobType.MERGE);
 
 		for (int i = 1; i < jobs.size(); i++) {
 			for (int j = 0; j < i; j++) {
@@ -67,19 +67,29 @@ public class JobList {
 	}
 
 	public void launch() {
+
+		executionManager = new ExecutionManager();
 		logger.info("Launching jobs");
 		// check for read after delete
-		// TODO
+		// TODO add dependency check
+		for (Job job : getJobs()) {
+			if (job instanceof ProcessingJob processingJob) {
+				processingJob.setExecutionManager(executionManager);
+			}
+			job.launch();
+			job.waitUntilFinished();
+		}
+		executionManager.close();
 	}
 
 
-	public static JobList createJobList(String jobListJSON) {
+	public static JobList createJobList(String jobListJSON, Storage storage) {
 		// TODO
 
 		ObjectMapper mapper = new ObjectMapper();
 		List<Object> list = null;
 		try {
-			Map<String, Object> result = mapper.readValue(jobListJSON, HashMap.class);
+			var result = mapper.readValue(jobListJSON, HashMap.class);
 			list = (List<Object>) result.get("jobs");
 		} catch (JsonProcessingException e) {
 			throw new RuntimeException(e);
@@ -88,11 +98,13 @@ public class JobList {
 			throw new IllegalArgumentException("Job list cannot be null");
 		}
 
-		List<Job> jobs = list.stream().map(o -> {
 
-			Map<String, Object> jobMap = (Map<String, Object>) o;
-			return Job.jobFactory(jobMap);
-		}).toList();
+		JobFactory jobFactory = new JobFactory(storage);
+		List<Job> jobs = list.stream()
+				.map(o -> (Map<String, Object>) o)
+				.map(jobFactory::apply)
+				.toList();
+
 		return new JobList(jobs);
 	}
 }

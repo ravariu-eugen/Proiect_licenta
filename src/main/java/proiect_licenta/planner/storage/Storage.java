@@ -11,7 +11,18 @@ public interface Storage {
 	 * @param destinationPath where to save the object
 	 * @return true if the object was successfully retrieved
 	 */
-	public boolean get(String objectName, String destinationPath);
+	boolean get(String objectName, String destinationPath);
+
+
+
+	/** get a file from storage
+	 * @param objectName name of the object to get
+	 * @return the content of the object
+	 */
+	byte[] getBytes(String objectName);
+
+
+
 
 
 	/** put a file in storage
@@ -19,21 +30,29 @@ public interface Storage {
 	 * @param sourcePath where to get the object
 	 * @return true if the object was successfully put
 	 */
-	public boolean put(String objectName, String sourcePath);
+	boolean put(String objectName, String sourcePath);
 
+
+	/** put a file in storage
+	 *
+	 * @param objectName
+	 * @param bytes
+	 * @return
+	 */
+	boolean putBytes(String objectName, byte[] bytes);
 
 	/** delete a file from storage
 	 * @param objectName name of the object to delete
 	 * @return true if the object was successfully deleted, false otherwise
 	 */
-	public boolean delete(String objectName);
+	boolean delete(String objectName);
 
 	/** copy a file in storage
 	 * @param initialObjectName name of the object to copy
 	 * @param copyObjectName name of the new object
 	 * @return true if the object was successfully copied
 	 */
-	public boolean copy(String initialObjectName, String copyObjectName);
+	boolean copy(String initialObjectName, String copyObjectName);
 
 	/**
 	 * Renames an object in the storage.
@@ -42,14 +61,14 @@ public interface Storage {
 	 * @param  copyObjectName    the new name of the object
 	 * @return                   true if the object was successfully renamed, false otherwise
 	 */
-	public boolean rename(String initialObjectName, String copyObjectName);
+	boolean rename(String initialObjectName, String copyObjectName);
 
 	/**
 	 * Lists all the objects in the storage.
 	 *
 	 * @return          a list of strings containing the names of all objects
 	 */
-	public List<String> listObjects();
+	List<String> listObjects();
 
 	/**
 	 * Check if the specified object exists in storage.
@@ -57,7 +76,7 @@ public interface Storage {
 	 * @param  objectName   name of the object to check for existence
 	 * @return              true if the object exists, false otherwise
 	 */
-	public boolean objectExists(String objectName);
+	boolean objectExists(String objectName);
 
 	/**
 	 * Checks if all the specified objects exist in the storage.
@@ -65,5 +84,5 @@ public interface Storage {
 	 * @param  objectNames  a list of strings containing the names of objects to check for existence
 	 * @return              true if all objects exist, false otherwise
 	 */
-	public boolean objectsExist(List<String> objectNames);
+	boolean objectsExist(List<String> objectNames);
 }
