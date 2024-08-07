@@ -1,15 +1,14 @@
-package proiect_licenta.planner.execution.worker.worker_request;
+package proiect_licenta.planner.execution.worker.load_balancing;
 
 import proiect_licenta.planner.execution.worker.Worker;
 import proiect_licenta.planner.jobs.ProcessingJob;
 
 import java.util.List;
 
-public class ExistingSetUp implements AllocationStrategy {
+public class ExistingSetUp implements LoadBalancer {
 	@Override
 	public Worker pickWorker(List<Worker> workers, ProcessingJob job) {
 		List<Worker> availableWorkers = workers.stream().filter(w -> w.getStatus().cpuUsage() <= 95 && w.getStatus().memoryUsage() <= 95).toList();
-
 
 
 		if (availableWorkers.isEmpty()) {
@@ -17,7 +16,7 @@ public class ExistingSetUp implements AllocationStrategy {
 		}
 
 		return availableWorkers.stream()
-				.filter(w-> w.assignedJobs().contains(job))
+				.filter(w -> w.assignedJobs().contains(job))
 				.findFirst()
 				.orElse(availableWorkers.getFirst());
 	}

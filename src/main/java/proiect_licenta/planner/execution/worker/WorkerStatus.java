@@ -2,13 +2,14 @@ package proiect_licenta.planner.execution.worker;
 
 import java.util.StringJoiner;
 
-public record WorkerStatus(WorkerState state, double cpuUsage, double memoryUsage) {
+public record WorkerStatus(WorkerState state, double cpuUsage, double memoryUsage, int remainingStorage) {
 	@Override
 	public String toString() {
 		return new StringJoiner(", ", WorkerStatus.class.getSimpleName() + "[", "]")
 				.add("state=" + state)
 				.add("cpuUsage=" + cpuUsage)
 				.add("memoryUsage=" + memoryUsage)
+				.add("remainingStorage=" + remainingStorage)
 				.toString();
 	}
 }

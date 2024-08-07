@@ -43,4 +43,8 @@ public interface Worker {
 
 	List<ProcessingJob> assignedJobs();
 
+
+
+	List<String> getActiveTasks();
+
 }

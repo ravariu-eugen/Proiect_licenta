@@ -1,4 +1,4 @@
-package proiect_licenta.planner.execution.instance_factory;
+package proiect_licenta.planner.execution.ec2_instance.instance_factory;
 
 import java.util.List;
 

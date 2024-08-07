@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.archive.ArchiveManager;
 import proiect_licenta.planner.archive.ZipManager;
 import proiect_licenta.planner.execution.fleet.FleetManager;
-import proiect_licenta.planner.execution.instance_factory.InstanceWrapper;
+import proiect_licenta.planner.execution.ec2_instance.instance_factory.InstanceWrapper;
 import proiect_licenta.planner.helper.FileDeleter;
 import proiect_licenta.planner.helper.Helper;
 import proiect_licenta.planner.jobs.JobList;

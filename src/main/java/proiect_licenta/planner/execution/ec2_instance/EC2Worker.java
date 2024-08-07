@@ -1,12 +1,15 @@
-package proiect_licenta.planner.execution.worker;
+package proiect_licenta.planner.execution.ec2_instance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import proiect_licenta.planner.dataset.*;
-import proiect_licenta.planner.execution.instance_factory.InstanceWrapper;
+import proiect_licenta.planner.dataset.TaskData;
+import proiect_licenta.planner.execution.ec2_instance.instance_factory.InstanceWrapper;
+import proiect_licenta.planner.execution.worker.Worker;
+import proiect_licenta.planner.execution.worker.WorkerState;
+import proiect_licenta.planner.execution.worker.WorkerStatus;
 import proiect_licenta.planner.jobs.ProcessingJob;
 import proiect_licenta.planner.storage.Storage;
 import proiect_licenta.planner.task.TaskComplete;
@@ -20,38 +23,59 @@ import java.util.concurrent.TimeUnit;
 
 public class EC2Worker implements Worker {
 	private static final Logger logger = LogManager.getLogger();
+	private static int counter = 0;
+	
 	private final InstanceWrapper instance;
-	private final OkHttpClient client = new OkHttpClient.Builder().callTimeout(100, TimeUnit.SECONDS)
-				.readTimeout(100, TimeUnit.SECONDS).build();
-
+	private final OkHttpClient client = new OkHttpClient.Builder()
+			.callTimeout(100, TimeUnit.SECONDS)
+			.readTimeout(100, TimeUnit.SECONDS).build();
+	private final List<ProcessingJob> activeJobs = new ArrayList<>();
+	private final List<String> uploadedFiles = new ArrayList<>();
+	private final List<String> activeTasks = new ArrayList<>();
+	private final int id = counter++;
+	private final ResultMap results = new ResultMap();
 	private WorkerStatus status;
 	private WorkerState state = WorkerState.ACTIVE;
 
-	public WorkerState getState() {
-		return state;
+	public EC2Worker(InstanceWrapper instance) {
+		this.instance = instance;
 	}
+
+	private static @NotNull RequestBody sendFileBody(String name, byte[] data) {
+		return new MultipartBody.Builder()
+				.setType(MultipartBody.FORM)
+				.addFormDataPart("file", name,
+						RequestBody.create(data, MediaType.parse("application/octet-stream")))
+				.build();
+	}
+
+	private static @NotNull RequestBody sendTaskBody(TaskData taskData, String taskName, String jobName, String imageName) {
+		return new MultipartBody.Builder()
+				.setType(MultipartBody.FORM)
+				.addFormDataPart("file", taskName + ".zip",
+						RequestBody.create(taskData.data(), MediaType.parse("application/octet-stream")))
+				.addFormDataPart("job", jobName)
+				.addFormDataPart("image", imageName)
+				.build();
+	}
+
 	public void terminate() {
 		state = WorkerState.TERMINATED;
 	}
 
-
-	private final List<ProcessingJob> activeJobs = new ArrayList<>();
-	private final List<String> uploadedFiles = new ArrayList<>();
+	public WorkerState getState() {
+		return state;
+	}
 
 	private String instanceURL() {
 		int port = 8080;
 		return "http://" + instance.publicIpAddress() + ":" + port;
 	}
 
-	public EC2Worker(InstanceWrapper instance) {
-		this.instance = instance;
-	}
-
 	@Override
 	public String getID() {
 		return instance.instanceId();
 	}
-
 
 	private boolean tryConnect() {
 
@@ -73,64 +97,66 @@ public class EC2Worker implements Worker {
 		return success;
 	}
 
-
 	private void monitor() {
 		// check if the job is still active
-		if (!tryConnect()) {
-			logger.debug("Could not connect to {}", instanceURL());
-			state = WorkerState.TERMINATED;
-			return;
-		}
+		logger.info("monitor");
+//		if (!tryConnect()) {
+//			logger.debug("Could not connect to {}", instanceURL());
+//			state = WorkerState.TERMINATED;
+//			return;
+//		}
+
 
 		Request request = new Request.Builder()
 				.url(instanceURL() + "/metrics")
 				.build();
-
+		logger.info("monitoring {}", instanceURL());
 		try (Response response = client.newCall(request).execute()) {
 			ObjectMapper mapper = new ObjectMapper();
-			Map<String, Double> json;
+			Map<String, String> json;
 			try {
 				json = mapper.readValue(response.body().string(), Map.class);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-			double cpuUsage = mapper.convertValue(json.get("cpuUsage"), Double.class);
-			double memoryUsage = mapper.convertValue(json.get("memoryUsage"), Double.class);
-			status = new WorkerStatus(state, cpuUsage, memoryUsage);
+			logger.info("metrics: {}", json);
+			double cpuUsage = Double.parseDouble(json.get("cpuUsage"));
+			logger.info("cpuUsage: {}", cpuUsage);
+			double memoryUsage = Double.parseDouble(json.get("memoryUsage"));
+			logger.info("memoryUsage: {}", memoryUsage);
+			int remainingStorage = Integer.parseInt(json.get("remainingStorage"));
+			logger.info("remainingStorage: {}", remainingStorage);
+			status = new WorkerStatus(state, cpuUsage, memoryUsage, remainingStorage);
+			logger.info(status);
 		} catch (IOException e) {
+			logger.error(e.getMessage());
 			throw new RuntimeException(e);
 		}
 
 	}
 
-
+	private void showStatus() {
+		monitor();
+		logger.info(status);
+	}
 
 	private void setUpJob(ProcessingJob job) throws IOException {
 
 		synchronized (activeJobs) {
 			// check if the job is already active
 			if (activeJobs.contains(job)) {
-				logger.debug("Job {} is already active", job.getName());
+				logger.info("Job {} is already active", job.getName());
 				return;
 			}
+			if (!tryConnect())
+				throw new IOException("Could not connect to " + instanceURL());
+
+			// send the files
+			logger.info("set up {} {}", instance.publicIpAddress(), instance.instanceId());
+			uploadImage(job.getStorage(), job.getImage());
+			job.getShared().forEach(shared -> uploadShared(job.getStorage(), shared));
 			activeJobs.add(job);
 		}
-
-		// set up the instance with the required files
-		logger.info("set up {} {}", instance.publicIpAddress(), instance.instanceId());
-
-		if (!tryConnect())
-			throw new IOException("Could not connect to " + instanceURL());
-
-
-		// send the files
-
-		uploadImage(job.getStorage(), job.getImage());
-		job.getShared().forEach(shared -> uploadShared(job.getStorage(), shared));
-		listUploadedImages();
-		listUploadedShared();
-
-
 	}
 
 	private void uploadImage(Storage storage, String image) {
@@ -177,14 +203,6 @@ public class EC2Worker implements Worker {
 
 	}
 
-	private static @NotNull RequestBody sendFileBody(String name, byte[] data) {
-		return new MultipartBody.Builder()
-				.setType(MultipartBody.FORM)
-				.addFormDataPart("file", name,
-						RequestBody.create(data, MediaType.parse("application/octet-stream")))
-				.build();
-	}
-
 	public void listUploadedImages() {
 		logger.info("list uploaded images");
 		Request request = new Request.Builder()
@@ -207,31 +225,6 @@ public class EC2Worker implements Worker {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-
-
-
-
-
-	private final ResultMap results = new ResultMap();
-
-
-	private static class ResultMap {
-		private record JobTask(String job, String task) { }
-		private final Map<JobTask, TaskResult> results = new HashMap<>();
-		public void put(String job, String task, TaskResult result) {
-			results.put(new JobTask(job, task), result);
-		}
-
-		public TaskResult get(String job, String task) {
-			return results.get(new JobTask(job, task));
-		}
-
-		public boolean contains(String job, String task) {
-			return results.containsKey(new JobTask(job, task));
-		}
-
 	}
 
 
@@ -271,17 +264,8 @@ public class EC2Worker implements Worker {
 			logger.error(e.toString());
 			throw new RuntimeException(e);
 		}
+		activeTasks.add(taskName);
 		results.put(jobName, taskName, new TaskPending(taskName));
-	}
-
-	private static @NotNull RequestBody sendTaskBody(TaskData taskData, String taskName, String jobName, String imageName) {
-		return new MultipartBody.Builder()
-				.setType(MultipartBody.FORM)
-				.addFormDataPart("file", taskName + ".zip",
-						RequestBody.create(taskData.data(), MediaType.parse("application/octet-stream")))
-				.addFormDataPart("job", jobName)
-				.addFormDataPart("image", imageName)
-				.build();
 	}
 
 	@Override
@@ -289,16 +273,17 @@ public class EC2Worker implements Worker {
 //		var status = getStatus();
 //		logger.info("status {}", status);
 
-		logger.debug("get result {} {}", job, task);
+		logger.info("get result {} {}", job, task);
 		Request request = new Request.Builder()
 				.url(instanceURL() + "/tasks/" + job + "/" + task)
 				.build();
-
+		showStatus();
 		try (Response response = client.newCall(request).execute()) {
 			switch (response.code()) {
 				case 200:
 					logger.info("complete result {} {}", job, task);
 					byte[] bytes = response.body().bytes();
+					activeTasks.remove(task);
 					results.put(job, task, new TaskComplete(task, bytes));
 					break;
 				case 204:
@@ -323,17 +308,42 @@ public class EC2Worker implements Worker {
 		return status;
 	}
 
+	@Override
+	public List<ProcessingJob> assignedJobs() {
+		return List.of();
+	}
+
+	@Override
+	public List<String> getActiveTasks() {
+		return activeTasks;
+	}
 
 	@Override
 	public String toString() {
 		return new StringJoiner(", ", EC2Worker.class.getSimpleName() + "[", "]")
-				.add("instance=" + instance.instanceId())
+				.add("id=" + id)
 				.add("state=" + state)
+				.add("instance=" + instance.instanceId())
 				.toString();
 	}
 
-	@Override
-	public List<ProcessingJob> assignedJobs() {
-		return List.of();
+	private static class ResultMap {
+		private final Map<JobTask, TaskResult> results = new HashMap<>();
+
+		public void put(String job, String task, TaskResult result) {
+			results.put(new JobTask(job, task), result);
+		}
+
+		public TaskResult get(String job, String task) {
+			return results.get(new JobTask(job, task));
+		}
+
+		public boolean contains(String job, String task) {
+			return results.containsKey(new JobTask(job, task));
+		}
+
+		private record JobTask(String job, String task) {
+		}
+
 	}
 }

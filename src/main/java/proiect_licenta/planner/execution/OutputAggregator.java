@@ -20,16 +20,29 @@ import java.util.List;
 
 public class OutputAggregator {
 	private static final Logger logger = LogManager.getLogger();
-	private ArchiveManager archiveManager = new ZipManager();
-
 	private final String tempTaskDir;
-
+	private final ArchiveManager archiveManager = new ZipManager();
 
 	public OutputAggregator() {
-
 		try {
 			// create a temporary folder to store and aggregate the results
 			tempTaskDir = Files.createTempDirectory("temp").toAbsolutePath().toString();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static void aggregateOutputs(Path file, String taskTempDir, String outputTempDir) {
+		int base = Path.of(taskTempDir).getNameCount();
+		String taskName = file.getName(base).toString();
+		String outputName = file.getName(base + 1).toString();
+
+		String filePrefix = Paths.get(taskTempDir, taskName, outputName).toString();
+		String fileName = file.toAbsolutePath().toString().substring(filePrefix.length() + 1);
+		String destination = Paths.get(outputTempDir, outputName, taskName, fileName).toString();
+		try {
+			new File(destination).getParentFile().mkdirs();
+			Files.copy(file, Path.of(destination));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -105,21 +118,5 @@ public class OutputAggregator {
 				}
 			}
 		});
-	}
-
-	private static void aggregateOutputs(Path file, String taskTempDir, String outputTempDir) {
-		int base = Path.of(taskTempDir).getNameCount();
-		String taskName = file.getName(base).toString();
-		String outputName = file.getName(base + 1).toString();
-
-		String filePrefix = Paths.get(taskTempDir, taskName, outputName).toString();
-		String fileName = file.toAbsolutePath().toString().substring(filePrefix.length()+1);
-		String destination = Paths.get(outputTempDir, outputName, taskName, fileName).toString();
-		try {
-			new File(destination).getParentFile().mkdirs();
-			Files.copy(file, Path.of(destination));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 }

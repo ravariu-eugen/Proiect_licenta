@@ -1,4 +1,4 @@
-package proiect_licenta.planner.execution.worker.worker_request;
+package proiect_licenta.planner.execution.worker.load_balancing;
 
 import proiect_licenta.planner.execution.worker.Worker;
 import proiect_licenta.planner.jobs.ProcessingJob;
@@ -6,7 +6,7 @@ import proiect_licenta.planner.jobs.ProcessingJob;
 import java.util.Comparator;
 import java.util.List;
 
-public class LowestCPUUsage implements AllocationStrategy {
+public class LowestCPUUsage implements LoadBalancer {
 	@Override
 	public Worker pickWorker(List<Worker> workers, ProcessingJob job) {
 		return workers.stream().min(Comparator.comparingDouble(w -> w.getStatus().cpuUsage())).orElseThrow(() -> new RuntimeException("No workers available"));

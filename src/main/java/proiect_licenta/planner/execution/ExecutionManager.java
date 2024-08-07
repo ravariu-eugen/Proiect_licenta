@@ -15,19 +15,14 @@ import java.util.concurrent.CompletableFuture;
 
 public class ExecutionManager {
 	private static final Logger logger = LogManager.getLogger();
-	private final WorkerPool workerPool = new WorkerPool();
+	private final WorkerPool workerPool = new WorkerPool(1);
 
 	// create thread to analyse the market and choose the cheapest region, then keep analysing
 
 
 	public ExecutionManager() {
 
-
-
 	}
-
-
-
 
 
 	public void launch(ProcessingJob job) {
@@ -42,17 +37,17 @@ public class ExecutionManager {
 		logger.info("{} tasks to be sent", inputDataset.getTasks().size());
 
 
-		List<Task> tasks = inputDataset.getTasks().stream()
+		List<Task> tasks = inputDataset.getTasks().parallelStream()
 				.map(taskData -> new Task(taskData, job, workerPool))
 				.toList();
 
 
-		List<CompletableFuture<TaskResult>> results = tasks.stream()
+		List<CompletableFuture<TaskResult>> results = tasks.parallelStream()
 				.map(Task::run)
 				.toList();
 
 
-		List<TaskResult> taskResults = results.stream()
+		List<TaskResult> taskResults = results.parallelStream()
 				.map(CompletableFuture::join)
 				.toList();
 
@@ -63,9 +58,6 @@ public class ExecutionManager {
 		logger.info("Finished processing job {}", job.getName());
 
 	}
-
-
-
 
 
 	public void close() {

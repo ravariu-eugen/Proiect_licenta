@@ -14,24 +14,10 @@ import java.nio.file.Path;
 public class KeyPairWrapper {
 	private final Logger logger = LogManager.getLogger();
 	private final Ec2Client client;
-
-	public String getKeyName() {
-		return keyName;
-	}
-
-	public Path getKeyPairFilePath() {
-		return keyPairFilePath;
-	}
-
 	private final String keyName;
 	private final String keyType;
 	private Path keyPairFilePath = null;
-
-
-	public boolean isCreated() {
-		return keyPairFilePath != null;
-	}
-
+	
 	public KeyPairWrapper(Ec2Client client, String keyName, String keyType) {
 		logger.debug("create key pair: {} {}", keyName, keyType);
 		this.client = client;
@@ -41,9 +27,9 @@ public class KeyPairWrapper {
 		deleteKeyPair();
 		// create request
 		var request = CreateKeyPairRequest.builder()
-						.keyType(keyType)
-						.keyName(keyName)
-						.build();
+				.keyType(keyType)
+				.keyName(keyName)
+				.build();
 
 		// send request
 		var response = client.createKeyPair(request);
@@ -59,6 +45,17 @@ public class KeyPairWrapper {
 		}
 	}
 
+	public String getKeyName() {
+		return keyName;
+	}
+
+	public Path getKeyPairFilePath() {
+		return keyPairFilePath;
+	}
+
+	public boolean isCreated() {
+		return keyPairFilePath != null;
+	}
 
 	private void saveKeyPair(@NotNull String keyMaterial) throws IOException {
 		// create temporary directory

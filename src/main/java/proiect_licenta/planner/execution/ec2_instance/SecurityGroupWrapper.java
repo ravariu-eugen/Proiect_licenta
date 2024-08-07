@@ -9,13 +9,7 @@ public class SecurityGroupWrapper {
 
 	private final Ec2Client client;
 	private final String securityGroupName;
-	private Logger logger = LogManager.getLogger();
-	private boolean isCreated = false;
-
-	public String getSecurityGroupName() {
-		return securityGroupName;
-	}
-
+	private final Logger logger = LogManager.getLogger();
 	private String securityGroupID;
 
 	public SecurityGroupWrapper(Ec2Client client, String securityGroupNamePrefix, String description) {
@@ -34,13 +28,16 @@ public class SecurityGroupWrapper {
 				sgName = securityGroupNamePrefix + i;
 
 			}
-
 		}
 
 		this.securityGroupName = sgName;
 
 		logger.debug("create security group: {}", securityGroupName);
 		create(client, securityGroupName, description);
+	}
+
+	public String getSecurityGroupName() {
+		return securityGroupName;
 	}
 
 	private void create(Ec2Client client, String securityGroupName, String description) {
@@ -58,7 +55,6 @@ public class SecurityGroupWrapper {
 		DescribeSecurityGroupsRequest describeRequest = DescribeSecurityGroupsRequest.builder().build();
 		DescribeSecurityGroupsResponse response = client.describeSecurityGroups(describeRequest);
 
-
 		var names = response.securityGroups().stream().map(SecurityGroup::groupName).toList();
 		return names.contains(groupName);
 	}
@@ -73,16 +69,14 @@ public class SecurityGroupWrapper {
 		var response = client.deleteSecurityGroup(deleteRequest);
 
 		logger.debug(response.toString());
-
 	}
-
 
 
 	public void authorizeAll() {
 		authorizeIP("0.0.0.0/0");
 	}
 
-	private boolean authorizeIP(String IP){
+	private boolean authorizeIP(String IP) {
 		IpRange ipRange = IpRange.builder().cidrIp(IP).build();
 
 		IpPermission ipPerm = IpPermission.builder()

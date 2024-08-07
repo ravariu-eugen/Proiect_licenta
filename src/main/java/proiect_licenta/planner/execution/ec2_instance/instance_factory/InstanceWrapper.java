@@ -1,16 +1,8 @@
-package proiect_licenta.planner.execution.instance_factory;
+package proiect_licenta.planner.execution.ec2_instance.instance_factory;
 
-import proiect_licenta.planner.execution.worker.InstanceMetrics;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
-import software.amazon.awssdk.services.cloudwatch.model.*;
 import software.amazon.awssdk.services.ec2.model.Instance;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
 import java.util.StringJoiner;
-import java.util.concurrent.CompletableFuture;
 
 public class InstanceWrapper {
 

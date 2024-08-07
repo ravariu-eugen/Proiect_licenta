@@ -1,4 +1,4 @@
-package proiect_licenta.planner.execution.instance_factory;
+package proiect_licenta.planner.execution.ec2_instance.instance_factory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,22 +11,22 @@ import java.util.List;
 public class SpotInstanceFactory extends InstanceFactoryAbs {
 	private static final Logger logger = LogManager.getLogger();
 	private final LaunchTemplateWrapper launchTemplateWrapper;
-
-
+	private final String availabilityZone;
 
 	public SpotInstanceFactory(Ec2Client client, InstanceType instanceType, String ami, String userData) {
 		this(client, instanceType, ami, userData, null);
 	}
+
 	public SpotInstanceFactory(Ec2Client client, InstanceType instanceType, String ami, String userData, String availabilityZone) {
 		super(client, instanceType, ami, userData);
 
 		launchTemplateWrapper = new LaunchTemplateWrapper(client, "launxh",
 				ami, instanceType,
 				keyPairWrapper.getKeyName(),
-				securityGroupWrapper.getSecurityGroupName(),
-				userData, availabilityZone);
+				securityGroupWrapper.getSecurityGroupID(),
+				userData);
 		launchTemplateWrapper.create();
-
+		this.availabilityZone = availabilityZone;
 	}
 
 	@Override
@@ -36,9 +36,13 @@ public class SpotInstanceFactory extends InstanceFactoryAbs {
 				.version("$Latest")
 				.build();
 
+		FleetLaunchTemplateOverridesRequest fleetLaunchTemplateOverridesRequest = FleetLaunchTemplateOverridesRequest.builder()
+				.subnetId(launchTemplateWrapper.getSubnetID(availabilityZone))
+				.build();
 
 		FleetLaunchTemplateConfigRequest fleetLaunchTemplateConfigRequest = FleetLaunchTemplateConfigRequest.builder()
 				.launchTemplateSpecification(fleetLaunchTemplateSpecificationRequest)
+				.overrides(fleetLaunchTemplateOverridesRequest)
 				.build();
 
 		TargetCapacitySpecificationRequest targetCapacitySpecificationRequest = TargetCapacitySpecificationRequest.builder()
@@ -53,8 +57,6 @@ public class SpotInstanceFactory extends InstanceFactoryAbs {
 				.instanceInterruptionBehavior(SpotInstanceInterruptionBehavior.TERMINATE)
 				.singleAvailabilityZone(true)
 				.build();
-
-
 
 
 		CreateFleetRequest createFleetRequest = CreateFleetRequest.builder()

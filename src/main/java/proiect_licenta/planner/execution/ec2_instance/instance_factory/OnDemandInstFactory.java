@@ -1,8 +1,5 @@
-package proiect_licenta.planner.execution.instance_factory;
+package proiect_licenta.planner.execution.ec2_instance.instance_factory;
 
-import proiect_licenta.planner.execution.ec2_instance.KeyPairWrapper;
-import proiect_licenta.planner.execution.ec2_instance.SecurityGroupWrapper;
-import proiect_licenta.planner.helper.Helper;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.InstanceType;
 import software.amazon.awssdk.services.ec2.model.RunInstancesRequest;

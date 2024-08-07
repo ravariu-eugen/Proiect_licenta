@@ -14,6 +14,37 @@ import java.util.Objects;
 
 public final class LaunchTemplateWrapper {
 	private static final Logger logger = LogManager.getLogger();
+	private static final Map<String, Subnet> subnetCache = new HashMap<>();
+	private final @NotNull Ec2Client client;
+	private final @NotNull String name;
+	private final @NotNull String ami;
+	private final @NotNull InstanceType instanceType;
+	private final @NotNull String keyName;
+	private final @NotNull String securityGroupID;
+	private final String userData;
+	public LaunchTemplateWrapper(@NotNull Ec2Client client,
+	                             @NotNull String name,
+	                             @NotNull String ami,
+	                             @NotNull InstanceType instanceType,
+	                             @NotNull String keyName,
+	                             @NotNull String securityGroupID,
+	                             String userData) {
+		this.client = client;
+		this.name = name;
+		this.ami = ami;
+		this.instanceType = instanceType;
+		this.keyName = keyName;
+		this.securityGroupID = securityGroupID;
+		this.userData = userData;
+	}
+	public LaunchTemplateWrapper(@NotNull Ec2Client client,
+	                             @NotNull String name,
+	                             @NotNull String ami,
+	                             @NotNull InstanceType instanceType,
+	                             @NotNull String keyName,
+	                             @NotNull String securityGroupName) {
+		this(client, name, ami, instanceType, keyName, securityGroupName, null);
+	}
 
 	private void deleteLaunchTemplate(String name) {
 		logger.debug("Deleting launch template: {}", name);
@@ -30,56 +61,7 @@ public final class LaunchTemplateWrapper {
 		deleteLaunchTemplate(name);
 	}
 
-
-	private static final Map<String, Subnet> subnetCache = new HashMap<>();
-	private final @NotNull Ec2Client client;
-	private final @NotNull String name;
-	private final @NotNull String ami;
-	private final @NotNull InstanceType instanceType;
-	private final @NotNull String keyName;
-	private final @NotNull String securityGroupName;
-	private final String userData;
-	private final String availabilityZone;
-
-	public LaunchTemplateWrapper(@NotNull Ec2Client client,
-	                             @NotNull String name,
-	                             @NotNull String ami,
-	                             @NotNull InstanceType instanceType,
-	                             @NotNull String keyName,
-	                             @NotNull String securityGroupName,
-	                             String userData,
-	                             String availabilityZone) {
-		this.client = client;
-		this.name = name;
-		this.ami = ami;
-		this.instanceType = instanceType;
-		this.keyName = keyName;
-		this.securityGroupName = securityGroupName;
-		this.userData = userData;
-		this.availabilityZone = availabilityZone;
-	}
-
-
-	public LaunchTemplateWrapper(@NotNull Ec2Client client,
-	                             @NotNull String name,
-	                             @NotNull String ami,
-	                             @NotNull InstanceType instanceType,
-	                             @NotNull String keyName,
-	                             @NotNull String securityGroupName,
-	                             String userData) {
-		this(client, name, ami, instanceType, keyName, securityGroupName, userData, null);
-	}
-
-	public LaunchTemplateWrapper(@NotNull Ec2Client client,
-	                             @NotNull String name,
-	                             @NotNull String ami,
-	                             @NotNull InstanceType instanceType,
-	                             @NotNull String keyName,
-	                             @NotNull String securityGroupName) {
-		this(client, name, ami, instanceType, keyName, securityGroupName, null);
-	}
-
-	private String getSubnetID(String availabilityZone) {
+	public String getSubnetID(String availabilityZone) {
 
 		if (subnetCache.containsKey(availabilityZone)) {
 			return subnetCache.get(availabilityZone).subnetId();
@@ -91,6 +73,7 @@ public final class LaunchTemplateWrapper {
 				.findFirst().orElse(null);
 		if (subnet != null) {
 			subnetCache.put(availabilityZone, subnet);
+			logger.info("Found subnet {} for availability zone {}", subnet.subnetId(), availabilityZone);
 			return subnet.subnetId();
 		}
 		return null;
@@ -103,22 +86,16 @@ public final class LaunchTemplateWrapper {
 			delete();
 		}
 
-
 		RequestLaunchTemplateData.Builder launchTemplateDataBuilder = RequestLaunchTemplateData.builder()
 				.imageId(ami)
-				.instanceType(instanceType)
 				.keyName(keyName)
-				.securityGroups(securityGroupName);
-
+				.securityGroupIds(securityGroupID)
+				.instanceType(instanceType);
 
 		if (userData != null) {
 			String base64UserData = Base64.getEncoder().encodeToString(userData.getBytes());
 
 			launchTemplateDataBuilder.userData(base64UserData);
-		}
-
-		if (availabilityZone != null) {
-			launchTemplateDataBuilder.networkInterfaces(ni -> ni.subnetId(getSubnetID(availabilityZone)));
 		}
 
 		CreateLaunchTemplateRequest request = CreateLaunchTemplateRequest.builder()
@@ -149,14 +126,13 @@ public final class LaunchTemplateWrapper {
 				Objects.equals(this.ami, that.ami) &&
 				Objects.equals(this.instanceType, that.instanceType) &&
 				Objects.equals(this.keyName, that.keyName) &&
-				Objects.equals(this.securityGroupName, that.securityGroupName) &&
-				Objects.equals(this.userData, that.userData) &&
-				Objects.equals(this.availabilityZone, that.availabilityZone);
+				Objects.equals(this.securityGroupID, that.securityGroupID) &&
+				Objects.equals(this.userData, that.userData);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(client, name, ami, instanceType, keyName, securityGroupName, userData, availabilityZone);
+		return Objects.hash(client, name, ami, instanceType, keyName, securityGroupID, userData);
 	}
 
 	@Override
@@ -167,9 +143,8 @@ public final class LaunchTemplateWrapper {
 				"ami=" + ami + ", " +
 				"instanceType=" + instanceType + ", " +
 				"keyName=" + keyName + ", " +
-				"securityGroupName=" + securityGroupName + ", " +
-				"userData=" + userData + ", " +
-				"availabilityZone=" + availabilityZone + ']';
+				"securityGroupName=" + securityGroupID + ", " +
+				"userData=" + userData + ']';
 	}
 
 
