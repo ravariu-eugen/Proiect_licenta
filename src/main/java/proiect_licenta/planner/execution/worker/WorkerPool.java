@@ -10,6 +10,7 @@ import proiect_licenta.planner.execution.worker.load_balancing.LoadBalancer;
 import proiect_licenta.planner.execution.worker.load_balancing.RandomWorker;
 import proiect_licenta.planner.helper.AmiMap;
 import proiect_licenta.planner.jobs.ProcessingJob;
+import software.amazon.awssdk.regions.Region;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,7 @@ public class WorkerPool {
 	private final List<WorkerManager> workerManagers = new ArrayList<>();
 	private final int maxWorkers = 3;
 	private final int maxVCPUs = 4;
-	private final int numTop = 2;
+	private final int numTop = 5;
 	private final MarketAnalyzer marketAnalyzerGP = new MarketAnalyzer(AmiMap.getRegions().subList(0, 1),
 			MarketAnalyzer.getGeneralPurposeInstances(maxVCPUs));
 	private final MarketAnalyzer marketAnalyzerCO = new MarketAnalyzer(AmiMap.getRegions(),
@@ -35,19 +36,19 @@ public class WorkerPool {
 	Queue<WorkerRequest> workerRequests = new LinkedBlockingQueue<>();
 
 
-	public WorkerPool(int minVCPUs) {
+	public WorkerPool(List<Region> regions, int minVCPUs) {
 		List<InstanceConfiguration> configurations = marketAnalyzerGP.getTopN(numTop);
-		for (int i = 0; i < configurations.size(); i++) {
-			int vcpus = configurations.get(i).instanceTypeInfo().vCpuInfo().defaultVCpus();
-			int numWorkers = minVCPUs / vcpus + (minVCPUs % vcpus == 0 ? 0 : 1);
 
 
-			logger.info("Config {}:", i + 1);
-			logger.info(configurations.get(i).toString());
-			workerManagers.add(new EC2InstanceManager("e" + (i + 1), configurations.get(i)));
-			workerManagers.get(i).createWorkers(numWorkers);
-			logger.info("Created {} workers for config {}", numWorkers, i + 1);
+		for (Region region : regions) {
+			List<InstanceConfiguration> regionConfigurations = configurations.stream().filter(ic -> ic.region().equals(region)).toList();
+			if (regionConfigurations.isEmpty()) {
+				continue;
+			}
+			workerManagers.add(new EC2InstanceManager(region, "e" + region.id(), regionConfigurations));
 		}
+
+		workerManagers.forEach(manager -> manager.createWorkers(1));
 
 		logger.info("Created {} workers", allWorkers().size());
 	}
@@ -71,13 +72,10 @@ public class WorkerPool {
 	}
 
 	private Worker pickWorker(ProcessingJob job) {
-		// TODO: implement
 		return loadBalancer.pickWorker(allWorkers(), job);
 	}
 
 	public CompletableFuture<Worker> requestWorker(ProcessingJob job) {
-		// TODO: implement
-
 		Worker w = pickWorker(job);
 		if (w != null) {
 			return CompletableFuture.completedFuture(w);

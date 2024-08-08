@@ -12,6 +12,7 @@ import java.util.zip.ZipOutputStream;
 public class ZipManager implements ArchiveManager {
 	private static final Logger logger = LogManager.getLogger();
 
+
 	private void addToZip(ZipOutputStream zos, File file, ZipEntry zipEntry) throws IOException {
 		try (FileInputStream fis = new FileInputStream(file)) {
 			zos.putNextEntry(zipEntry);
@@ -40,6 +41,7 @@ public class ZipManager implements ArchiveManager {
 		}
 
 	}
+
 	@Override
 	public void archiveFile(String filePath, String archivePath) {
 		archiveFile(filePath, archivePath, false);

@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import proiect_licenta.planner.execution.WorkerManager;
 import proiect_licenta.planner.execution.analysis.InstanceConfiguration;
-import proiect_licenta.planner.execution.ec2_instance.instance_factory.InstanceFactory;
 import proiect_licenta.planner.execution.ec2_instance.instance_factory.InstanceWrapper;
 import proiect_licenta.planner.execution.ec2_instance.instance_factory.SpotInstanceFactory;
 import proiect_licenta.planner.execution.worker.Worker;
@@ -31,34 +30,34 @@ public class EC2InstanceManager implements WorkerManager {
 	private final Map<String, InstanceWrapper> instances = new HashMap<>();
 	private final Ec2Client client;
 	private final String managerName;
-	private final InstanceFactory instanceFactory;
+	private final SpotInstanceFactory instanceFactory;
 
 	private final Map<String, EC2Worker> workers = new HashMap<>(); // <1>
 
-	public EC2InstanceManager(String managerName, InstanceConfiguration config) {
-		this(managerName, config.region(), config.instanceType(), config.availabilityZone());
-	}
 
-	public EC2InstanceManager(String managerName, Region region, InstanceType instanceType, String availabilityZone) {
-		this(ClientHelper.createEC2Client(region),
-				managerName,
-				instanceType,
-				AmiMap.getAmi(region),
-				Helper.getUserData(),
-				availabilityZone
-		);
-	}
-
-	public EC2InstanceManager(Ec2Client client, String managerName, InstanceType instanceType, String ami, String userData, String availabilityZone) {
-		this.client = client;
+	public EC2InstanceManager(Region region, String managerName, List<InstanceConfiguration> configurations) {
 		this.managerName = managerName;
+		client = ClientHelper.createEC2Client(region);
+
+		KeyPairWrapper keyPairWrapper = new KeyPairWrapper(client, "key", "rsa");
+		SecurityGroupWrapper securityGroupWrapper = new SecurityGroupWrapper(client, "sg", "sg");
+		securityGroupWrapper.authorizeIngress(Helper.myIP());
+		securityGroupWrapper.authorizeAll(); // TODO: remove
+		LaunchTemplateWrapper launchTemplateWrapper = new LaunchTemplateWrapper(
+				client,
+				"launchTemplateTest",
+				AmiMap.getAmi(client.serviceClientConfiguration().region()),
+				keyPairWrapper.getKeyName(),
+				securityGroupWrapper.getSecurityGroupID(),
+				Helper.getUserData()
+		);
+		launchTemplateWrapper.create();
 
 		logger.debug("instanceName: {}", managerName);
-		logger.debug("instanceType: {}", instanceType);
 		logger.debug("region: {}", client.serviceClientConfiguration().region());
 		clearRemainingInstances();
 
-		this.instanceFactory = new SpotInstanceFactory(client, instanceType, ami, userData, availabilityZone);
+		this.instanceFactory = new SpotInstanceFactory(client, configurations, launchTemplateWrapper);
 	}
 
 	/**
@@ -220,7 +219,7 @@ public class EC2InstanceManager implements WorkerManager {
 
 	@Override
 	public List<Worker> createWorkers(int count) {
-		if(count <= 0) {
+		if (count <= 0) {
 			throw new IllegalArgumentException("count must be greater than 0");
 		}
 		logger.info("createInstances: {}", count);

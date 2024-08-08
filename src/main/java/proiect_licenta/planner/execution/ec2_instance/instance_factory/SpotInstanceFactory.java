@@ -2,44 +2,65 @@ package proiect_licenta.planner.execution.ec2_instance.instance_factory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import proiect_licenta.planner.execution.analysis.InstanceConfiguration;
 import proiect_licenta.planner.execution.ec2_instance.LaunchTemplateWrapper;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class SpotInstanceFactory extends InstanceFactoryAbs {
+public class SpotInstanceFactory {
 	private static final Logger logger = LogManager.getLogger();
+	private static final Map<String, Subnet> subnetCache = new HashMap<>();
 	private final LaunchTemplateWrapper launchTemplateWrapper;
-	private final String availabilityZone;
+	private final List<InstanceConfiguration> configurations;
+	private final Ec2Client client;
 
-	public SpotInstanceFactory(Ec2Client client, InstanceType instanceType, String ami, String userData) {
-		this(client, instanceType, ami, userData, null);
+
+	public SpotInstanceFactory(Ec2Client client, List<InstanceConfiguration> configurations, LaunchTemplateWrapper launchTemplateWrapper) {
+		this.client = client;
+		this.configurations = configurations;
+		this.launchTemplateWrapper = launchTemplateWrapper;
 	}
 
-	public SpotInstanceFactory(Ec2Client client, InstanceType instanceType, String ami, String userData, String availabilityZone) {
-		super(client, instanceType, ami, userData);
+	public String getSubnetID(String availabilityZone) {
 
-		launchTemplateWrapper = new LaunchTemplateWrapper(client, "launxh",
-				ami, instanceType,
-				keyPairWrapper.getKeyName(),
-				securityGroupWrapper.getSecurityGroupID(),
-				userData);
-		launchTemplateWrapper.create();
-		this.availabilityZone = availabilityZone;
+		if (subnetCache.containsKey(availabilityZone)) {
+			return subnetCache.get(availabilityZone).subnetId();
+		}
+
+		Subnet subnet = client.describeSubnets()
+				.subnets().stream()
+				.filter(s -> s.availabilityZone().equals(availabilityZone))
+				.findFirst().orElse(null);
+		if (subnet != null) {
+			subnetCache.put(availabilityZone, subnet);
+			logger.info("Found subnet {} for availability zone {}", subnet.subnetId(), availabilityZone);
+			return subnet.subnetId();
+		}
+		return null;
 	}
 
-	@Override
+	private FleetLaunchTemplateOverridesRequest getOverride(InstanceConfiguration config) {
+		return FleetLaunchTemplateOverridesRequest.builder()
+				.subnetId(getSubnetID(config.availabilityZone()))
+				.instanceType(config.instanceType())
+				.build();
+	}
+
 	public List<InstanceWrapper> createInstances(int count) {
 		FleetLaunchTemplateSpecificationRequest fleetLaunchTemplateSpecificationRequest = FleetLaunchTemplateSpecificationRequest.builder()
 				.launchTemplateName(launchTemplateWrapper.name())
 				.version("$Latest")
 				.build();
 
-		FleetLaunchTemplateOverridesRequest fleetLaunchTemplateOverridesRequest = FleetLaunchTemplateOverridesRequest.builder()
-				.subnetId(launchTemplateWrapper.getSubnetID(availabilityZone))
-				.build();
 
+		List<FleetLaunchTemplateOverridesRequest> fleetLaunchTemplateOverridesRequest = configurations
+				.stream()
+				.map(this::getOverride)
+				.toList();
 		FleetLaunchTemplateConfigRequest fleetLaunchTemplateConfigRequest = FleetLaunchTemplateConfigRequest.builder()
 				.launchTemplateSpecification(fleetLaunchTemplateSpecificationRequest)
 				.overrides(fleetLaunchTemplateOverridesRequest)
@@ -80,5 +101,9 @@ public class SpotInstanceFactory extends InstanceFactoryAbs {
 		DescribeInstancesResponse response = client.describeInstances(request);
 		var newInstances = response.reservations().getFirst().instances();
 		return newInstances.stream().map(InstanceWrapper::new).toList();
+	}
+
+	public void clean() {
+
 	}
 }

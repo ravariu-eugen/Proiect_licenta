@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.dataset.Dataset;
 import proiect_licenta.planner.execution.worker.WorkerPool;
+import proiect_licenta.planner.helper.AmiMap;
 import proiect_licenta.planner.jobs.ProcessingJob;
 import proiect_licenta.planner.task.Task;
 import proiect_licenta.planner.task.TaskResult;
@@ -15,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class ExecutionManager {
 	private static final Logger logger = LogManager.getLogger();
-	private final WorkerPool workerPool = new WorkerPool(1);
+	private final WorkerPool workerPool = new WorkerPool(AmiMap.getRegions(), 4);
 
 	// create thread to analyse the market and choose the cheapest region, then keep analysing
 

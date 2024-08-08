@@ -4,46 +4,44 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.*;
+import software.amazon.awssdk.services.ec2.model.CreateLaunchTemplateRequest;
+import software.amazon.awssdk.services.ec2.model.DeleteLaunchTemplateRequest;
+import software.amazon.awssdk.services.ec2.model.RequestLaunchTemplateData;
 
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 
 public final class LaunchTemplateWrapper {
 	private static final Logger logger = LogManager.getLogger();
-	private static final Map<String, Subnet> subnetCache = new HashMap<>();
+
 	private final @NotNull Ec2Client client;
 	private final @NotNull String name;
 	private final @NotNull String ami;
-	private final @NotNull InstanceType instanceType;
 	private final @NotNull String keyName;
 	private final @NotNull String securityGroupID;
 	private final String userData;
+
 	public LaunchTemplateWrapper(@NotNull Ec2Client client,
 	                             @NotNull String name,
 	                             @NotNull String ami,
-	                             @NotNull InstanceType instanceType,
 	                             @NotNull String keyName,
 	                             @NotNull String securityGroupID,
 	                             String userData) {
 		this.client = client;
 		this.name = name;
 		this.ami = ami;
-		this.instanceType = instanceType;
 		this.keyName = keyName;
 		this.securityGroupID = securityGroupID;
 		this.userData = userData;
 	}
+
 	public LaunchTemplateWrapper(@NotNull Ec2Client client,
 	                             @NotNull String name,
 	                             @NotNull String ami,
-	                             @NotNull InstanceType instanceType,
 	                             @NotNull String keyName,
 	                             @NotNull String securityGroupName) {
-		this(client, name, ami, instanceType, keyName, securityGroupName, null);
+		this(client, name, ami, keyName, securityGroupName, null);
 	}
 
 	private void deleteLaunchTemplate(String name) {
@@ -61,24 +59,6 @@ public final class LaunchTemplateWrapper {
 		deleteLaunchTemplate(name);
 	}
 
-	public String getSubnetID(String availabilityZone) {
-
-		if (subnetCache.containsKey(availabilityZone)) {
-			return subnetCache.get(availabilityZone).subnetId();
-		}
-
-		Subnet subnet = client.describeSubnets()
-				.subnets().stream()
-				.filter(s -> s.availabilityZone().equals(availabilityZone))
-				.findFirst().orElse(null);
-		if (subnet != null) {
-			subnetCache.put(availabilityZone, subnet);
-			logger.info("Found subnet {} for availability zone {}", subnet.subnetId(), availabilityZone);
-			return subnet.subnetId();
-		}
-		return null;
-	}
-
 
 	public void create() {
 		if (exists()) {
@@ -89,8 +69,7 @@ public final class LaunchTemplateWrapper {
 		RequestLaunchTemplateData.Builder launchTemplateDataBuilder = RequestLaunchTemplateData.builder()
 				.imageId(ami)
 				.keyName(keyName)
-				.securityGroupIds(securityGroupID)
-				.instanceType(instanceType);
+				.securityGroupIds(securityGroupID);
 
 		if (userData != null) {
 			String base64UserData = Base64.getEncoder().encodeToString(userData.getBytes());
@@ -124,7 +103,6 @@ public final class LaunchTemplateWrapper {
 		return Objects.equals(this.client, that.client) &&
 				Objects.equals(this.name, that.name) &&
 				Objects.equals(this.ami, that.ami) &&
-				Objects.equals(this.instanceType, that.instanceType) &&
 				Objects.equals(this.keyName, that.keyName) &&
 				Objects.equals(this.securityGroupID, that.securityGroupID) &&
 				Objects.equals(this.userData, that.userData);
@@ -132,7 +110,7 @@ public final class LaunchTemplateWrapper {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(client, name, ami, instanceType, keyName, securityGroupID, userData);
+		return Objects.hash(client, name, ami, keyName, securityGroupID, userData);
 	}
 
 	@Override
@@ -141,7 +119,6 @@ public final class LaunchTemplateWrapper {
 				"client=" + client + ", " +
 				"name=" + name + ", " +
 				"ami=" + ami + ", " +
-				"instanceType=" + instanceType + ", " +
 				"keyName=" + keyName + ", " +
 				"securityGroupName=" + securityGroupID + ", " +
 				"userData=" + userData + ']';

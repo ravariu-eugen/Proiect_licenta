@@ -41,7 +41,7 @@ public class OutputAggregator {
 		String fileName = file.toAbsolutePath().toString().substring(filePrefix.length() + 1);
 		String destination = Paths.get(outputTempDir, outputName, taskName, fileName).toString();
 		try {
-			new File(destination).getParentFile().mkdirs();
+			boolean _ = new File(destination).getParentFile().mkdirs();
 			Files.copy(file, Path.of(destination));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -59,17 +59,11 @@ public class OutputAggregator {
 	}
 
 	public void mergeResults(List<TaskResult> results, Storage storage, List<String> outputs) {
-		// TODO
 		logger.info("Merging results {}", results.size());
-
-
 		// extract results into temp folder
 		extractResults(results);
-
 		// create output archives
 		createOutputs(storage, outputs);
-
-
 	}
 
 	private void createOutputs(Storage storage, List<String> outputs) {

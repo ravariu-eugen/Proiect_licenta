@@ -2,8 +2,8 @@ package proiect_licenta.planner.jobs;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import proiect_licenta.planner.storage.Storage;
 import proiect_licenta.planner.execution.ExecutionManager;
+import proiect_licenta.planner.storage.Storage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +21,7 @@ public class ProcessingJob extends Job {
 	private ExecutionManager executionManager;
 
 	public ProcessingJob(String name, String description, Storage storage,
-						 String image,
+	                     String image,
 	                     String inputDataSet, List<String> sharedDataSets,
 	                     List<String> outputDataSets, Map<String, String> requirements) {
 		super(name, description, storage);
@@ -39,11 +39,8 @@ public class ProcessingJob extends Job {
 	}
 
 
-
-
 	@Override
 	public void launch() {
-		// TODO
 		logger.info("Launching processing job {} with input data set {}", name, input);
 		logger.info(storage.listObjects());
 		executionManager.launch(this);
