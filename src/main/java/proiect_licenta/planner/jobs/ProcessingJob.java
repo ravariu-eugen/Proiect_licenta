@@ -42,7 +42,6 @@ public class ProcessingJob extends Job {
 	@Override
 	public void launch() {
 		logger.info("Launching processing job {} with input data set {}", name, input);
-		logger.info(storage.listObjects());
 		executionManager.launch(this);
 	}
 

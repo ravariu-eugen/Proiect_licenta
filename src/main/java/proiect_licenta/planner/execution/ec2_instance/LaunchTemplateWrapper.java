@@ -4,9 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.CreateLaunchTemplateRequest;
-import software.amazon.awssdk.services.ec2.model.DeleteLaunchTemplateRequest;
-import software.amazon.awssdk.services.ec2.model.RequestLaunchTemplateData;
+import software.amazon.awssdk.services.ec2.model.*;
 
 import java.util.Base64;
 import java.util.Objects;
@@ -60,6 +58,19 @@ public final class LaunchTemplateWrapper {
 	}
 
 
+	private LaunchTemplateBlockDeviceMappingRequest createEbs(int size) {
+		if (size < 8) {
+			throw new IllegalArgumentException("EBS size must be at least 8 GiB");
+		}
+		return LaunchTemplateBlockDeviceMappingRequest.builder()
+				.deviceName("/dev/xvda")
+				.ebs(req -> req
+						.volumeType(VolumeType.GP2)
+						.volumeSize(size)
+				)
+				.build();
+	}
+
 	public void create() {
 		if (exists()) {
 			// clear existing launch template
@@ -69,7 +80,8 @@ public final class LaunchTemplateWrapper {
 		RequestLaunchTemplateData.Builder launchTemplateDataBuilder = RequestLaunchTemplateData.builder()
 				.imageId(ami)
 				.keyName(keyName)
-				.securityGroupIds(securityGroupID);
+				.securityGroupIds(securityGroupID)
+				.blockDeviceMappings(createEbs(64));
 
 		if (userData != null) {
 			String base64UserData = Base64.getEncoder().encodeToString(userData.getBytes());

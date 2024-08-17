@@ -2,18 +2,22 @@ package proiect_licenta.planner.testrun;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
+import picocli.CommandLine;
 import proiect_licenta.planner.archive.ArchiveManager;
 import proiect_licenta.planner.archive.ZipManager;
+import proiect_licenta.planner.cli.PlannerCLI;
 import proiect_licenta.planner.helper.FileDeleter;
 import proiect_licenta.planner.helper.Helper;
-import proiect_licenta.planner.jobs.JobList;
-import proiect_licenta.planner.storage.LocalStorage;
+import proiect_licenta.planner.jobs.joblist.JobList;
 import proiect_licenta.planner.storage.Storage;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -22,10 +26,22 @@ public class TestRun {
 
 	private final ArchiveManager manager = new ZipManager();
 
-	private final Storage storage = new LocalStorage();
+	private final Storage storage;
 
-	public TestRun() {
+	public TestRun(Storage storage) {
+		this.storage = storage;
 		// TODO Auto-generated constructor stub
+	}
+
+	public static void main(String[] args) {
+
+
+		String[] args2 = new String[1];
+		args2[0] = "-h";
+		System.out.println(Arrays.toString(args2));
+
+		int exitCode = new CommandLine(new PlannerCLI()).execute(args2);
+		System.exit(exitCode);
 	}
 
 	private void prepareArchives() {
@@ -45,7 +61,6 @@ public class TestRun {
 		data.forEach(task -> manager.archiveFolder("data/test_data/" + task, "arch/" + task + ".zip"));
 
 	}
-
 
 	public void loadData() {
 
@@ -72,6 +87,21 @@ public class TestRun {
 		}
 	}
 
+	private void getStorage(String destination) {
+
+		//
+		try {
+			FileUtils.cleanDirectory(new File(destination));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		Path directory = Paths.get(destination);
+		var files = storage.listObjects();
+		for (String file : files) {
+			storage.get(file, directory.resolve(file).toString());
+		}
+	}
 
 	public void run() {
 
@@ -100,7 +130,7 @@ public class TestRun {
 		// 4. get results from storage
 		logger.info("Getting results from storage");
 		logger.info("Storage objects: {}", storage.listObjects());
+		getStorage("results");
 	}
-
 
 }

@@ -14,7 +14,7 @@ public record InstanceConfiguration(Region region,
 		return Double.parseDouble(spotPrice.spotPrice());
 	}
 
-	int vcpuCount() {
+	public int vcpuCount() {
 		return instanceTypeInfo.vCpuInfo().defaultVCpus();
 	}
 

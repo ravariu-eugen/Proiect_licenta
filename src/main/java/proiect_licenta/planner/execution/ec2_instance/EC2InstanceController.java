@@ -1,5 +1,6 @@
 package proiect_licenta.planner.execution.ec2_instance;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
@@ -51,7 +52,7 @@ public class EC2InstanceController {
 	}
 
 	public void sendTask(String imageName, String jobName, TaskData taskData) {
-
+		logger.debug("Send task {} {} {}", taskData.name(), jobName, imageName);
 
 		Request request = new Request.Builder()
 				.url(instanceURL() + "/tasks")
@@ -60,9 +61,9 @@ public class EC2InstanceController {
 
 		try (Response response = client.newCall(request).execute()) {
 			if (response.isSuccessful()) {
-				logger.debug("{} {}", response.code(), response.body().string());
+				logger.debug("Send task SUCCESS {} {}", response.code(), response.body().string());
 			} else {
-				logger.error("{} {}", response.code(), response.body().string());
+				logger.error("Send task ERROR {} {}", response.code(), response.body().string());
 			}
 
 
@@ -98,23 +99,24 @@ public class EC2InstanceController {
 	}
 
 	public void uploadImage(Storage storage, String image) {
-		logger.info("upload image {}", image);
+		//logger.info("upload image {}", image);
 		uploadFile(image, storage, "images");
+		//logger.info("uploaded image {}", image);
 	}
 
 	public void uploadShared(Storage storage, String shared) {
-		logger.info("upload shared {}", shared);
+		//logger.info("upload shared {}", shared);
 		uploadFile(shared, storage, "shared");
+		//logger.info("uploaded shared {}", shared);
 	}
 
 	public TaskResult getResult(String jobName, String taskName) {
 //		var status = getStatus();
 //		logger.info("status {}", status);
-
-		logger.info("get result {} {}", jobName, taskName);
 		Request request = new Request.Builder()
 				.url(instanceURL() + "/tasks/" + jobName + "/" + taskName)
 				.build();
+
 		try (Response response = client.newCall(request).execute()) {
 			switch (response.code()) {
 				case 200:
@@ -122,7 +124,7 @@ public class EC2InstanceController {
 					byte[] bytes = response.body().bytes();
 					return new TaskComplete(taskName, bytes);
 				case 204:
-					logger.info("no result {} {}", jobName, taskName);
+					logger.debug("no result {} {}", jobName, taskName);
 					return new TaskPending(taskName);
 				case 404:
 					logger.info("not found {} {}", jobName, taskName);
@@ -136,15 +138,19 @@ public class EC2InstanceController {
 	}
 
 	public WorkerMetrics getMetrics() {
-		logger.info("monitoring {}", instanceURL());
 		Request request = new Request.Builder()
 				.url(instanceURL() + "/metrics")
 				.build();
 		try (Response response = client.newCall(request).execute()) {
 			ObjectMapper mapper = new ObjectMapper();
-			return mapper.readValue(response.body().string(), WorkerMetrics.class);
+			String responseBody = response.body().string();
+			JsonNode jsonNode = mapper.readTree(responseBody);
+			double cpuUsage = jsonNode.get("cpuUsage").asDouble();
+			double memoryUsage = jsonNode.get("memoryUsage").asDouble();
+			double remainingStorage = jsonNode.get("remainingStorage").asDouble();
+			return new WorkerMetrics(cpuUsage, memoryUsage, ((int) remainingStorage));
 		} catch (IOException e) {
-			logger.error(e.getMessage());
+			logger.error("Get metrics error {}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 	}
@@ -159,14 +165,14 @@ public class EC2InstanceController {
 
 
 		var data = storage.getBytes(name);
-		logger.info("upload file {} {} {}", name, destination, data.length);
+		logger.debug("upload file {} {} {}", name, destination, data.length);
 
 		Request request = new Request.Builder()
 				.url(instanceURL() + "/" + destination)
 				.post(sendFileBody(name, data))
 				.build();
 
-		logger.info("send request {} {}", name, instanceURL());
+		logger.debug("send request {} {}", name, instanceURL());
 
 
 		try (Response response = client.newCall(request).execute()) {
@@ -174,7 +180,7 @@ public class EC2InstanceController {
 			if (response.isSuccessful()) {
 				uploadedFiles.add(name);
 			}
-			logger.debug("{} {}", response.code(), response.body().string());
+			logger.debug("Response {} {}", response.code(), response.body().string());
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 			throw new RuntimeException(e);

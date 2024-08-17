@@ -8,7 +8,6 @@ import proiect_licenta.planner.execution.analysis.MarketAnalyzer;
 import proiect_licenta.planner.execution.ec2_instance.EC2InstanceManager;
 import proiect_licenta.planner.execution.worker.load_balancing.LoadBalancer;
 import proiect_licenta.planner.execution.worker.load_balancing.RandomWorker;
-import proiect_licenta.planner.helper.AmiMap;
 import proiect_licenta.planner.jobs.ProcessingJob;
 import software.amazon.awssdk.regions.Region;
 
@@ -26,18 +25,14 @@ public class WorkerPool {
 	private final int maxWorkers = 3;
 	private final int maxVCPUs = 4;
 	private final int numTop = 5;
-	private final MarketAnalyzer marketAnalyzerGP = new MarketAnalyzer(AmiMap.getRegions().subList(0, 1),
-			MarketAnalyzer.getGeneralPurposeInstances(maxVCPUs));
-	private final MarketAnalyzer marketAnalyzerCO = new MarketAnalyzer(AmiMap.getRegions(),
-			MarketAnalyzer.getComputeOptimizedInstances(maxVCPUs));
-	private final MarketAnalyzer marketAnalyzerMO = new MarketAnalyzer(AmiMap.getRegions(),
-			MarketAnalyzer.getMemoryOptimizedInstances(maxVCPUs));
+	private final MarketAnalyzer marketAnalyzer;
 	private final LoadBalancer loadBalancer = new RandomWorker();
 	Queue<WorkerRequest> workerRequests = new LinkedBlockingQueue<>();
 
 
 	public WorkerPool(List<Region> regions, int minVCPUs) {
-		List<InstanceConfiguration> configurations = marketAnalyzerGP.getTopN(numTop);
+		marketAnalyzer = new MarketAnalyzer(regions, MarketAnalyzer.getGeneralPurposeInstances(16));
+		List<InstanceConfiguration> configurations = marketAnalyzer.getTopN(numTop);
 
 
 		for (Region region : regions) {
@@ -48,7 +43,7 @@ public class WorkerPool {
 			workerManagers.add(new EC2InstanceManager(region, "e" + region.id(), regionConfigurations));
 		}
 
-		workerManagers.forEach(manager -> manager.createWorkers(1));
+		workerManagers.forEach(manager -> manager.createWorkers(minVCPUs));
 
 		logger.info("Created {} workers", allWorkers().size());
 	}

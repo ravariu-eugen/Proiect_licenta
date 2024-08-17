@@ -1,9 +1,16 @@
-from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Flatten
+from joblib import dump, load
+
+input_dir = '/run/input'
+shared_dir = '/run/shared'
+output_dir = '/run/output'
+
+
 
 # Load the MNIST dataset
-(X_train, y_train), (X_test, y_test) = mnist.load_data()
+(X_train, y_train) = load('mnist_data_train.joblib')
+(X_test, y_test) = load('mnist_data_test.joblib')
 
 # Normalize pixel values to be between 0 and 1
 X_train = X_train.astype('float32') / 255
@@ -13,10 +20,15 @@ X_test = X_test.astype('float32') / 255
 X_train = X_train.reshape((X_train.shape[0], 28, 28, 1))
 X_test = X_test.reshape((X_test.shape[0], 28, 28, 1))
 
+configuration = [32, 16]
+
+
+
 # Define the model
 model = Sequential()
 model.add(Flatten(input_shape=(28, 28, 1)))
-model.add(Dense(128, activation='relu'))
+for c in configuration:
+    model.add(Dense(c, activation='relu'))
 model.add(Dense(10, activation='softmax'))
 
 # Compile the model
@@ -34,6 +46,6 @@ print('Test accuracy:', accuracy)
 
 
 # Write to output folder
-with open('/output/result.txt', 'w') as file:
+with open('result.txt', 'w') as file:
     file.write('Test accuracy: ' + str(accuracy))
 

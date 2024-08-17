@@ -2,8 +2,9 @@ package proiect_licenta.planner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import proiect_licenta.planner.storage.BucketStorage;
 import proiect_licenta.planner.helper.Helper;
+import proiect_licenta.planner.storage.BucketStorage;
+import proiect_licenta.planner.storage.LocalStorage;
 import proiect_licenta.planner.testrun.TestRun;
 
 import java.io.IOException;
@@ -15,7 +16,7 @@ public class Application {
 	private static final Logger logger = LogManager.getLogger();
 
 
-	public static void testBM(){
+	public static void testBM() {
 		BucketStorage bucketManager = new BucketStorage(Helper.getBucketName());
 		logger.info(bucketManager.listObjects());
 		bucketManager.get("numbers1.txt", "numbers.txt");
@@ -41,20 +42,15 @@ public class Application {
 	}
 
 
-
-
-
-
-
 	public static void main(String[] args) {
-		TestRun testRun = new TestRun();
+//		int exitCode = new CommandLine(new PlannerCLI()).execute(args);
+//		System.exit(exitCode);
+		var testRun = new TestRun(new LocalStorage());
 		testRun.run();
 		//testRun.testFleet();
 
 
 	}
-
-
 
 
 }

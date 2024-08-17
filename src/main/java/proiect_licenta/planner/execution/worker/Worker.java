@@ -5,6 +5,7 @@ import proiect_licenta.planner.jobs.ProcessingJob;
 import proiect_licenta.planner.task.TaskResult;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 
 public interface Worker {
@@ -16,17 +17,12 @@ public interface Worker {
 	String getID();
 
 
-	/**
-	 * sends a task to be executed
-	 *
-	 * @param job  the job to be sent
-	 * @param data the task to be sent
-	 */
-	void sendTask(ProcessingJob job, TaskData data);
-
 	WorkerState getState();
+	
 
-	TaskResult getResult(String job, String task);
+	void terminate();
+
+	CompletableFuture<TaskResult> submitTask(ProcessingJob job, TaskData taskData);
 
 	/**
 	 * @return the status of the worker

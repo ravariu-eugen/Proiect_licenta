@@ -113,8 +113,14 @@ public class EC2InstanceManager implements WorkerManager {
 		terminatedInstances.forEach(instance -> workers.get(instance.instanceId()).terminate());
 
 		// create new workers
-		if (!terminatedInstances.isEmpty())
-			createWorkers(terminatedInstances.size());
+
+
+		if (!terminatedInstances.isEmpty()) {
+			int terminatedVcpu = terminatedInstances.stream().map(instance -> instances.get(instance.instanceId()).vcpuCount()).reduce(0, Integer::sum);
+
+			logger.debug("createWorkers: {}", terminatedVcpu);
+			createWorkers(terminatedVcpu);
+		}
 	}
 
 
@@ -183,6 +189,7 @@ public class EC2InstanceManager implements WorkerManager {
 	private void terminate() {
 		logger.info("terminateAll");
 		terminate(getInstancesIds());
+		workers.values().forEach(EC2Worker::terminate);
 		logger.info("terminatedAll");
 	}
 
@@ -218,14 +225,15 @@ public class EC2InstanceManager implements WorkerManager {
 
 
 	@Override
-	public List<Worker> createWorkers(int count) {
-		if (count <= 0) {
-			throw new IllegalArgumentException("count must be greater than 0");
+	public List<Worker> createWorkers(int vcpuCount) {
+		if (vcpuCount <= 0) {
+			throw new IllegalArgumentException("vcpuCount must be greater than 0");
 		}
-		logger.info("createInstances: {}", count);
+		logger.info("createInstances: vcpuCount {}", vcpuCount);
 
 
-		var newInstances = instanceFactory.createInstances(count);
+		var newInstances = instanceFactory.createInstances(vcpuCount);
+		newInstances.forEach(instance -> logger.info("new instance: {}", instance.vcpuCount()));
 		int newInstanceCount = newInstances.size();
 
 		newInstances.forEach(instance -> instances.put(instance.instanceId(), instance));
@@ -234,11 +242,11 @@ public class EC2InstanceManager implements WorkerManager {
 		for (int i = 0; i < newInstanceCount; i++) {
 			setTag("Name", managerName + "-" + i, newInstances.get(i).instanceId());
 		}
-
+		updateInstances();
 		Map<String, EC2Worker> newWorkers = newInstances.stream()
 				.collect(Collectors.toMap(InstanceWrapper::instanceId, EC2Worker::new));
+		logger.info("new workers: {}", newWorkers.size());
 		workers.putAll(newWorkers);
-		updateInstances();
 		return newWorkers.values().stream().map(w -> (Worker) w).toList();
 	}
 

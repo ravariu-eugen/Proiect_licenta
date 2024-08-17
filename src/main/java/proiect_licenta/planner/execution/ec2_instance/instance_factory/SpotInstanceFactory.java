@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.ec2.model.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SpotInstanceFactory {
 	private static final Logger logger = LogManager.getLogger();
@@ -18,11 +19,14 @@ public class SpotInstanceFactory {
 	private final List<InstanceConfiguration> configurations;
 	private final Ec2Client client;
 
+	private final Map<InstanceType, InstanceTypeInfo> instanceTypeMap;
 
 	public SpotInstanceFactory(Ec2Client client, List<InstanceConfiguration> configurations, LaunchTemplateWrapper launchTemplateWrapper) {
 		this.client = client;
 		this.configurations = configurations;
 		this.launchTemplateWrapper = launchTemplateWrapper;
+
+		instanceTypeMap = configurations.stream().collect(Collectors.toMap(InstanceConfiguration::instanceType, InstanceConfiguration::instanceTypeInfo));
 	}
 
 	public String getSubnetID(String availabilityZone) {
@@ -37,7 +41,7 @@ public class SpotInstanceFactory {
 				.findFirst().orElse(null);
 		if (subnet != null) {
 			subnetCache.put(availabilityZone, subnet);
-			logger.info("Found subnet {} for availability zone {}", subnet.subnetId(), availabilityZone);
+			//logger.info("Found subnet {} for availability zone {}", subnet.subnetId(), availabilityZone);
 			return subnet.subnetId();
 		}
 		return null;
@@ -47,10 +51,11 @@ public class SpotInstanceFactory {
 		return FleetLaunchTemplateOverridesRequest.builder()
 				.subnetId(getSubnetID(config.availabilityZone()))
 				.instanceType(config.instanceType())
+				.weightedCapacity((double) config.vcpuCount())
 				.build();
 	}
 
-	public List<InstanceWrapper> createInstances(int count) {
+	public List<InstanceWrapper> createInstances(int vcpuCount) {
 		FleetLaunchTemplateSpecificationRequest fleetLaunchTemplateSpecificationRequest = FleetLaunchTemplateSpecificationRequest.builder()
 				.launchTemplateName(launchTemplateWrapper.name())
 				.version("$Latest")
@@ -67,8 +72,8 @@ public class SpotInstanceFactory {
 				.build();
 
 		TargetCapacitySpecificationRequest targetCapacitySpecificationRequest = TargetCapacitySpecificationRequest.builder()
-				.spotTargetCapacity(count)
-				.totalTargetCapacity(count)
+				//.spotTargetCapacity(vcpuCount)
+				.totalTargetCapacity(vcpuCount)
 				.defaultTargetCapacityType(DefaultTargetCapacityType.SPOT)
 				.build();
 
@@ -100,7 +105,9 @@ public class SpotInstanceFactory {
 		DescribeInstancesRequest request = DescribeInstancesRequest.builder().instanceIds(instanceIDs).build();
 		DescribeInstancesResponse response = client.describeInstances(request);
 		var newInstances = response.reservations().getFirst().instances();
-		return newInstances.stream().map(InstanceWrapper::new).toList();
+		return newInstances.stream()
+				.map(instance -> new InstanceWrapper(instance, instanceTypeMap.get(instance.instanceType())))
+				.toList();
 	}
 
 	public void clean() {

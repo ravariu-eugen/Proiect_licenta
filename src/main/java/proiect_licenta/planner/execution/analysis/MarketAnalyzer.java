@@ -21,26 +21,20 @@ import java.util.stream.IntStream;
 public class MarketAnalyzer {
 	private static final Logger logger = LogManager.getLogger();
 
-	private static final List<String> GPprefixes = List.of("m*", "m6.*", "m7.*");
-	private static final List<InstanceType> generalPurposeInstances = getGeneralPurposeInstances(8);
-
+	private static final List<String> GPprefixes = List.of("m5.*", "m6.*", "m7.*");
 	private static final List<String> COprefixes = List.of("c4.*", "c5.*", "c6.*", "c7.*");
-	private static final List<InstanceType> computeOptimizedInstances = getComputeOptimizedInstances(8);
-
 	private static final List<String> MOprefixes = List.of("r5.*", "r6.*", "r7.*");
-	private static final List<InstanceType> memoryOptimizedInstances = getMemoryOptimizedInstances(8);
 
 	public final List<InstanceConfiguration> spotPrices = new ArrayList<>();
-	private final List<Region> usedRegions;
-	private final List<InstanceType> usedInstanceTypes;
-	private final Map<InstanceType, InstanceTypeInfo> usedInstanceInfo;
+	private final List<Region> regions;
+	private final List<InstanceType> instanceTypes;
+	private final Map<InstanceType, InstanceTypeInfo> infoMap;
 
 
-	public MarketAnalyzer(List<Region> usedRegions, List<InstanceType> usedInstanceTypes) {
-		this.usedRegions = usedRegions;
-		this.usedInstanceTypes = usedInstanceTypes;
-		System.out.println(usedInstanceTypes.stream().sorted().collect(Collectors.toList()));
-		this.usedInstanceInfo = loadUsedInstanceInfo(usedInstanceTypes);
+	public MarketAnalyzer(List<Region> regions, List<InstanceType> instanceTypes) {
+		this.regions = regions;
+		this.instanceTypes = instanceTypes;
+		this.infoMap = loadUsedInstanceInfo(instanceTypes);
 
 		updateSpotPrices();
 	}
@@ -111,7 +105,6 @@ public class MarketAnalyzer {
 					.sorted(Comparator.comparing(Enum::name))
 					.filter(it -> !it.toString().equals("null"))
 					.filter(it -> !it.toString().substring(0, 3).contains("a"))
-
 					.toList();
 		}
 	}
@@ -157,8 +150,8 @@ public class MarketAnalyzer {
 
 	private void updateSpotPrices() {
 		spotPrices.clear();
-		spotPrices.addAll(usedRegions.stream()
-				.map(r -> getSpotPrices(r, usedInstanceTypes))
+		spotPrices.addAll(regions.stream()
+				.map(r -> getSpotPrices(r, instanceTypes))
 				.flatMap(List::stream).toList());
 	}
 
@@ -186,7 +179,7 @@ public class MarketAnalyzer {
 			return response.spotPriceHistory().stream().map(
 							sp -> new InstanceConfiguration(
 									region,
-									usedInstanceInfo.get(sp.instanceType()),
+									infoMap.get(sp.instanceType()),
 									sp))
 					.toList();
 		}

@@ -15,8 +15,8 @@ import java.util.Map;
 
 
 public class JobFactory {
-	private static Logger logger = LogManager.getLogger();
-	private Storage storage;
+	private static final Logger logger = LogManager.getLogger();
+	private final Storage storage;
 
 	public JobFactory(Storage storage) {
 		this.storage = storage;
@@ -92,7 +92,7 @@ public class JobFactory {
 		}
 
 
-		logger.info("{} job", type);
+		//logger.info("{} job", type);
 		return switch (type.toLowerCase()) {
 			case "processing" -> processingJob(name, description, req, jobMap);
 			case "copy" -> copyJob(name, description, req);

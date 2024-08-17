@@ -59,7 +59,6 @@ public class OutputAggregator {
 	}
 
 	public void mergeResults(List<TaskResult> results, Storage storage, List<String> outputs) {
-		logger.info("Merging results {}", results.size());
 		// extract results into temp folder
 		extractResults(results);
 		// create output archives
@@ -86,7 +85,7 @@ public class OutputAggregator {
 
 				outputs.forEach(output -> {
 					String name = output.substring(0, output.lastIndexOf('.'));
-					logger.info("Creating output {}", name);
+					//logger.info("Creating output {}", name);
 					ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 					archiveManager.addFolder(outputTempDir + "/" + name, outputStream);
 					storage.putBytes(output, outputStream.toByteArray());

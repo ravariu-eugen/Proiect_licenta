@@ -75,7 +75,7 @@ public class ZipManager implements ArchiveManager {
 
 	@Override
 	public void addFolder(String folderPath, String archivePath) {
-		logger.info("Adding {} to {}", folderPath, archivePath);
+		//logger.info("Adding {} to {}", folderPath, archivePath);
 
 		try {
 			addFolder(folderPath, new FileOutputStream(archivePath));
