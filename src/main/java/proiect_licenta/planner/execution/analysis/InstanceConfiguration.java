@@ -40,6 +40,9 @@ public record InstanceConfiguration(Region region,
 				", availabilityZone='" + availabilityZone() + '\'' +
 				", instanceType=" + instanceTypeInfo.instanceType() +
 				", spotPrice=" + spotPrice.spotPrice() +
+				", vcpuCount=" + vcpuCount() +
+				", memInMB=" + memInMB() +
+				", pricePerVCPU=" + pricePerVCPU() +
 				'}';
 	}
 }

@@ -1,7 +1,7 @@
 package proiect_licenta.planner.execution.worker;
 
 import proiect_licenta.planner.dataset.TaskData;
-import proiect_licenta.planner.jobs.ProcessingJob;
+import proiect_licenta.planner.jobs.ComputeJob;
 import proiect_licenta.planner.task.TaskResult;
 
 import java.util.List;
@@ -18,11 +18,11 @@ public interface Worker {
 
 
 	WorkerState getState();
-	
+
 
 	void terminate();
 
-	CompletableFuture<TaskResult> submitTask(ProcessingJob job, TaskData taskData);
+	CompletableFuture<TaskResult> submitTask(ComputeJob job, TaskData taskData);
 
 	/**
 	 * @return the status of the worker
@@ -33,7 +33,7 @@ public interface Worker {
 	String toString();
 
 
-	List<ProcessingJob> assignedJobs();
+	List<ComputeJob> assignedJobs();
 
 
 	List<String> getActiveTasks();

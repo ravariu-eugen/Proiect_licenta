@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ProcessingJob extends Job {
+public class ComputeJob extends Job {
 	private final Logger logger = LogManager.getLogger();
 
 	private final String image;
@@ -20,10 +20,10 @@ public class ProcessingJob extends Job {
 	private final Map<String, String> requirements;
 	private ExecutionManager executionManager;
 
-	public ProcessingJob(String name, String description, Storage storage,
-	                     String image,
-	                     String inputDataSet, List<String> sharedDataSets,
-	                     List<String> outputDataSets, Map<String, String> requirements) {
+	public ComputeJob(String name, String description, Storage storage,
+	                  String image,
+	                  String inputDataSet, List<String> sharedDataSets,
+	                  List<String> outputDataSets, Map<String, String> requirements) {
 		super(name, description, storage);
 
 		this.image = image;

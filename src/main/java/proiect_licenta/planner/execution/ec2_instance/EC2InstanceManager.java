@@ -233,7 +233,7 @@ public class EC2InstanceManager implements WorkerManager {
 
 
 		var newInstances = instanceFactory.createInstances(vcpuCount);
-		newInstances.forEach(instance -> logger.info("new instance: {}", instance.vcpuCount()));
+		newInstances.forEach(instance -> logger.info("new instance: {} {}", instance.vcpuCount(), instance.instanceType()));
 		int newInstanceCount = newInstances.size();
 
 		newInstances.forEach(instance -> instances.put(instance.instanceId(), instance));

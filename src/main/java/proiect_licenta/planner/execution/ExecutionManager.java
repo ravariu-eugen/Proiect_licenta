@@ -3,9 +3,10 @@ package proiect_licenta.planner.execution;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.dataset.Dataset;
+import proiect_licenta.planner.dataset.StorageDataset;
 import proiect_licenta.planner.execution.worker.WorkerPool;
 import proiect_licenta.planner.helper.AmiMap;
-import proiect_licenta.planner.jobs.ProcessingJob;
+import proiect_licenta.planner.jobs.ComputeJob;
 import proiect_licenta.planner.task.Task;
 import proiect_licenta.planner.task.TaskResult;
 
@@ -19,13 +20,14 @@ import java.util.stream.Collectors;
 
 public class ExecutionManager {
 	private static final Logger logger = LogManager.getLogger();
-	private final WorkerPool workerPool = new WorkerPool(AmiMap.getRegions(), 16);
+	private final WorkerPool workerPool;
 
 	// create thread to analyse the market and choose the cheapest region, then keep analysing
 
 
 	public ExecutionManager() {
-
+		logger.info("Starting execution manager");
+		workerPool = new WorkerPool(AmiMap.getRegions(), 20);
 	}
 
 	public static String printStatus(List<Boolean> status) {
@@ -36,7 +38,7 @@ public class ExecutionManager {
 				.reduce(0, Integer::sum) + "/" + status.size();
 	}
 
-	public void launch(ProcessingJob job) {
+	public void launch(ComputeJob job) {
 
 
 		// load job dataset
@@ -44,7 +46,7 @@ public class ExecutionManager {
 		logger.info("Launching processing job {}", job.getName());
 		Dataset inputDataset = null;
 		try {
-			inputDataset = new Dataset(job.getStorage(), job.getInput());
+			inputDataset = new StorageDataset(job.getStorage(), job.getInput());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

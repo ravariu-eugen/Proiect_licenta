@@ -26,7 +26,11 @@ public class SpotInstanceFactory {
 		this.configurations = configurations;
 		this.launchTemplateWrapper = launchTemplateWrapper;
 
-		instanceTypeMap = configurations.stream().collect(Collectors.toMap(InstanceConfiguration::instanceType, InstanceConfiguration::instanceTypeInfo));
+		instanceTypeMap = configurations.stream().collect(Collectors.toMap(
+				InstanceConfiguration::instanceType,
+				InstanceConfiguration::instanceTypeInfo,
+				(v1, _) -> v1,
+				HashMap::new));
 	}
 
 	public String getSubnetID(String availabilityZone) {
@@ -72,7 +76,6 @@ public class SpotInstanceFactory {
 				.build();
 
 		TargetCapacitySpecificationRequest targetCapacitySpecificationRequest = TargetCapacitySpecificationRequest.builder()
-				//.spotTargetCapacity(vcpuCount)
 				.totalTargetCapacity(vcpuCount)
 				.defaultTargetCapacityType(DefaultTargetCapacityType.SPOT)
 				.build();

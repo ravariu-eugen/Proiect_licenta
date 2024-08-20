@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.dataset.TaskData;
 import proiect_licenta.planner.execution.worker.Worker;
 import proiect_licenta.planner.execution.worker.WorkerPool;
-import proiect_licenta.planner.jobs.ProcessingJob;
+import proiect_licenta.planner.jobs.ComputeJob;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -13,13 +13,13 @@ public class Task {
 	private static final Logger logger = LogManager.getLogger();
 
 	private final TaskData taskData;
-	private final ProcessingJob job;
+	private final ComputeJob job;
 	private final WorkerPool workerPool;
 
 	private Worker worker;
 
 
-	public Task(TaskData data, ProcessingJob job, WorkerPool workerPool) {
+	public Task(TaskData data, ComputeJob job, WorkerPool workerPool) {
 		this.taskData = data;
 		this.job = job;
 		this.workerPool = workerPool;

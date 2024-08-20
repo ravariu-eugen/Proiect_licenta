@@ -1,5 +1,6 @@
 package proiect_licenta.planner.execution.ec2_instance;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.dataset.TaskData;
@@ -7,7 +8,7 @@ import proiect_licenta.planner.execution.ec2_instance.instance_factory.InstanceW
 import proiect_licenta.planner.execution.worker.Worker;
 import proiect_licenta.planner.execution.worker.WorkerMetrics;
 import proiect_licenta.planner.execution.worker.WorkerState;
-import proiect_licenta.planner.jobs.ProcessingJob;
+import proiect_licenta.planner.jobs.ComputeJob;
 import proiect_licenta.planner.task.TaskPending;
 import proiect_licenta.planner.task.TaskResult;
 
@@ -26,7 +27,7 @@ public class EC2Worker implements Worker {
 
 
 	private final EC2InstanceController controller;
-	private final List<ProcessingJob> activeJobs = new ArrayList<>();
+	private final List<ComputeJob> activeJobs = new ArrayList<>();
 	private final List<String> activeTasks = new ArrayList<>();
 	private final int id = counter++;
 	private final BlockingQueue<QueueTask> queue = new LinkedBlockingQueue<>();
@@ -82,7 +83,7 @@ public class EC2Worker implements Worker {
 	}
 
 
-	private void setUpJob(ProcessingJob job) {
+	private void setUpJob(ComputeJob job) {
 
 		synchronized (job) {
 			// check if the job is already active
@@ -104,7 +105,7 @@ public class EC2Worker implements Worker {
 		// TODO: start the task
 		// If the instance can handle it, start the task
 		// If the instance can't handle it, keep the task in a queue
-		logger.info("start task {}-{}", qt.jobName(), qt.taskData().name());
+		logger.info("worker {} start task {}-{}", id, qt.jobName(), qt.taskData().name());
 		setUpJob(qt.job());
 		controller.sendTask(qt.jobImage(), qt.jobName(), qt.taskData());
 		//logger.info("task {}-{} started", qt.jobName(), qt.taskData().name());
@@ -149,7 +150,7 @@ public class EC2Worker implements Worker {
 	}
 
 	@Override
-	public CompletableFuture<TaskResult> submitTask(ProcessingJob job, TaskData taskData) {
+	public CompletableFuture<TaskResult> submitTask(ComputeJob job, TaskData taskData) {
 		CompletableFuture<TaskResult> future = new CompletableFuture<>();
 		QueueTask qt = new QueueTask(job, taskData, future);
 
@@ -165,7 +166,7 @@ public class EC2Worker implements Worker {
 	}
 
 	@Override
-	public List<ProcessingJob> assignedJobs() {
+	public List<ComputeJob> assignedJobs() {
 		return List.of();
 	}
 
@@ -182,13 +183,14 @@ public class EC2Worker implements Worker {
 				.toString();
 	}
 
-	private record QueueTask(ProcessingJob job, TaskData taskData, CompletableFuture<TaskResult> future) {
+	private record QueueTask(ComputeJob job, TaskData taskData, CompletableFuture<TaskResult> future) {
 		public String jobName() {
 			return job.getName();
 		}
 
+
 		public String jobImage() {
-			return job.getImage().substring(0, job.getImage().lastIndexOf("."));
+			return FilenameUtils.getBaseName(job.getImage());
 		}
 
 

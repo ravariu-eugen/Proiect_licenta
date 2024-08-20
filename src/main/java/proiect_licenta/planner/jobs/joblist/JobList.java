@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.execution.ExecutionManager;
+import proiect_licenta.planner.jobs.ComputeJob;
 import proiect_licenta.planner.jobs.Job;
 import proiect_licenta.planner.jobs.JobFactory;
-import proiect_licenta.planner.jobs.ProcessingJob;
 import proiect_licenta.planner.storage.Storage;
 
 import java.util.ArrayList;
@@ -114,8 +114,8 @@ public class JobList {
 		// check for read after delete
 		// TODO add dependency check
 		for (Job job : getJobs()) {
-			if (job instanceof ProcessingJob processingJob) {
-				processingJob.setExecutionManager(executionManager);
+			if (job instanceof ComputeJob computeJob) {
+				computeJob.setExecutionManager(executionManager);
 			}
 		}
 

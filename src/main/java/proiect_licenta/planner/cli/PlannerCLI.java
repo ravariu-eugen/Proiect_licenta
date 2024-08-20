@@ -28,19 +28,15 @@ public class PlannerCLI implements Callable<Integer> {
 	@Option(names = {"-l", "--local"}, description = "The name of the local folder; at least one of --bucket and --local must be specified")
 	private String localFolder;
 
-	private String credentialsFile;
-
 	@CommandLine.Parameters(arity = "0..", description = "The paths of the joblists")
 	private List<String> jobListPaths;
 
 
-	@Option(names = {"-a", "--aws"}, description = "The name of the AWS credentials file")
+	@Option(names = {"-a", "--aws"}, description = "The name of the AWS credentials file", required = true)
 	private String awsCredentialsFile;
 
 
-	private Storage storage;
-
-	public List<JobList> loadJobLists() {
+	public List<JobList> loadJobLists(Storage storage) {
 
 
 		return jobListPaths.parallelStream()
@@ -69,7 +65,6 @@ public class PlannerCLI implements Callable<Integer> {
 			return 1;
 		}
 
-
 		if (bucketName == null && localFolder == null) {
 			System.out.println("The bucket name or the local folder must be specified.");
 			return 1;
@@ -79,7 +74,7 @@ public class PlannerCLI implements Callable<Integer> {
 				: new LocalStorage(localFolder);
 
 
-		List<JobList> jobLists = loadJobLists();
+		List<JobList> jobLists = loadJobLists(storage);
 
 		jobLists.parallelStream().forEach(JobList::launch);
 		return 0;

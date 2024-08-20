@@ -23,6 +23,7 @@ public class JobFactory {
 	}
 
 	public Job apply(String jobJson) {
+		// TODO: refactor so that processing job can have no inputs and so that shared files can have a name mapping
 		ObjectMapper mapper = new ObjectMapper();
 		try {
 			Map<String, Object> jobMap = mapper.readValue(jobJson, Map.class);
@@ -94,7 +95,7 @@ public class JobFactory {
 
 		//logger.info("{} job", type);
 		return switch (type.toLowerCase()) {
-			case "processing" -> processingJob(name, description, req, jobMap);
+			case "compute" -> computeJob(name, description, req, jobMap);
 			case "copy" -> copyJob(name, description, req);
 			case "rename" -> renameJob(name, description, req);
 			case "delete" -> deleteJob(name, description, req);
@@ -104,7 +105,7 @@ public class JobFactory {
 	}
 
 
-	public @NotNull ProcessingJob processingJob(String name, String description, JobRequirements requirements, @NotNull Map<String, Object> jobMap) {
+	public @NotNull ComputeJob computeJob(String name, String description, JobRequirements requirements, @NotNull Map<String, Object> jobMap) {
 
 
 		String image = parseLine(jobMap, "image");
@@ -122,7 +123,7 @@ public class JobFactory {
 		if (outputDataSets.isEmpty())
 			throw new IllegalArgumentException("Output data set missing");
 
-		return new ProcessingJob(name, description, storage,
+		return new ComputeJob(name, description, storage,
 				image,
 				inputDataSet,
 				sharedDataSets,
