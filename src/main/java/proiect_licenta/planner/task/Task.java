@@ -25,7 +25,7 @@ public class Task {
 		this.workerPool = workerPool;
 	}
 
-	private void aquireWorker() {
+	private void acquireWorker() {
 		worker = workerPool.requestWorker(job).join();
 	}
 
@@ -34,7 +34,7 @@ public class Task {
 		return CompletableFuture.supplyAsync(
 				() -> {
 					while (true) {
-						aquireWorker();
+						acquireWorker();
 						//logger.info("Task {} running on worker {}", taskData.name(), worker.toString());
 
 						// TODO: wait 1

@@ -1,12 +1,16 @@
 package proiect_licenta.planner.jobs;
 
 import proiect_licenta.planner.storage.Storage;
+import software.amazon.awssdk.utils.Pair;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.CompletableFuture;
 
 public class DeleteJob extends Job {
 	private final String inputDataSet;
+	private CompletableFuture<Boolean> future;
+
 	public DeleteJob(String name, String description, Storage storage, String inputDataSet) {
 		super(name, description, storage);
 		this.inputDataSet = inputDataSet;
@@ -30,11 +34,17 @@ public class DeleteJob extends Job {
 
 	@Override
 	public void launch() {
-		storage.delete(inputDataSet);
+		future = storage.delete(inputDataSet);
 	}
 
 	@Override
 	public void waitUntilFinished() {
+		future.join();
+	}
+
+	@Override
+	public Pair<Integer, Integer> getProgress() {
+		return Pair.of(future.isDone() ? 1 : 0, 1);
 	}
 
 	@Override

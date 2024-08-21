@@ -3,6 +3,7 @@ package proiect_licenta.planner.jobs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.storage.Storage;
+import software.amazon.awssdk.utils.Pair;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -55,6 +56,8 @@ public abstract class Job {
 
 	public abstract void waitUntilFinished();
 
+	public abstract Pair<Integer, Integer> getProgress();
+
 	public enum JobType {
 		PROCESSING,
 		COPY,
@@ -66,6 +69,5 @@ public abstract class Job {
 			return this == DELETE || this == RENAME;
 		}
 	}
-
 
 }
