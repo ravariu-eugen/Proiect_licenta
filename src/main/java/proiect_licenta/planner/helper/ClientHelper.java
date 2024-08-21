@@ -10,7 +10,7 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.efs.EfsClient;
 import software.amazon.awssdk.services.pricing.PricingClient;
-import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -71,9 +71,9 @@ public class ClientHelper {
 				.build();
 	}
 
-	public static S3Client createS3Client(Region region) {
+	public static S3AsyncClient createS3AsyncClient(Region region) {
 		AwsCredentialsProvider provider = StaticCredentialsProvider.create(credentials);
-		return S3Client.builder()
+		return S3AsyncClient.builder()
 				.region(region)
 				.credentialsProvider(provider)
 				.build();
