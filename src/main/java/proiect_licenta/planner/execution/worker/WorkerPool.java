@@ -45,9 +45,12 @@ public class WorkerPool {
 			if (regionConfigurations.isEmpty()) {
 				continue;
 			}
-			workerManagers.add(new EC2InstanceManager(region, "e" + region.id(), regionConfigurations));
+			var instanceManager = new EC2InstanceManager(region, "e" + region.id(), regionConfigurations);
+			workerManagers.add(instanceManager);
 		}
 		int vcpusPerManager = (int) Math.ceil((double) minVCPUs / workerManagers.size());
+
+
 		workerManagers.forEach(manager -> manager.createWorkers(vcpusPerManager));
 
 		logger.info("Created {} workers", allWorkers().size());

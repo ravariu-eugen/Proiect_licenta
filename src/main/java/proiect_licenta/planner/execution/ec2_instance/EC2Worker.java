@@ -1,6 +1,5 @@
 package proiect_licenta.planner.execution.ec2_instance;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.dataset.TaskData;
@@ -12,17 +11,18 @@ import proiect_licenta.planner.jobs.ComputeJob;
 import proiect_licenta.planner.task.TaskPending;
 import proiect_licenta.planner.task.TaskResult;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class EC2Worker implements Worker {
 	private static final Logger logger = LogManager.getLogger();
 	private static final int period = 100;
+
 	private static final int cpuThreshold = 95;
 	private static final int memoryThreshold = 95;
+
+	private static final double failureRate = 0.02;
+	private static final long failurePeriod = 10;
 	private static int counter = 0;
 
 
@@ -49,7 +49,17 @@ public class EC2Worker implements Worker {
 
 		queueLoopFuture = executor.submit(this::queueLoop);
 
+		//executor.scheduleAtFixedRate(this::simulatedInterruption, failurePeriod, failurePeriod, TimeUnit.SECONDS);
 
+	}
+
+	private void simulatedInterruption() {
+
+		Random random = new Random();
+		if (random.nextDouble() < failureRate) {
+			logger.error("Simulated Interruption");
+			terminate();
+		}
 	}
 
 
@@ -92,10 +102,9 @@ public class EC2Worker implements Worker {
 				return;
 			}
 
-
 			// send the files
 			controller.uploadImage(job.getStorage(), job.getImage());
-			job.getShared().forEach(shared -> controller.uploadShared(job.getStorage(), shared));
+			job.sharedFilenames().forEach(shared -> controller.uploadShared(job.getStorage(), shared));
 			activeJobs.add(job);
 		}
 	}
@@ -106,8 +115,9 @@ public class EC2Worker implements Worker {
 		// If the instance can handle it, start the task
 		// If the instance can't handle it, keep the task in a queue
 		logger.info("worker {} start task {}-{}", id, qt.jobName(), qt.taskData().name());
+		//logger.info("data {}", qt.taskData.data().length);
 		setUpJob(qt.job());
-		controller.sendTask(qt.jobImage(), qt.jobName(), qt.taskData());
+		controller.sendTask(qt.job(), qt.taskData());
 		//logger.info("task {}-{} started", qt.jobName(), qt.taskData().name());
 
 		ScheduledFuture<?> scheduledFuture = executor.scheduleWithFixedDelay(() -> {
@@ -121,7 +131,7 @@ public class EC2Worker implements Worker {
 			if (!(res instanceof TaskPending)) {
 				// task is completed or error
 				qt.future().complete(res);
-				logger.info("Task {}-{} completed", qt.jobName(), qt.taskName());
+				logger.debug("Task {}-{} completed", qt.jobName(), qt.taskName());
 			}
 		}, 1, period, TimeUnit.MILLISECONDS);
 		qt.future().whenComplete((res, t) -> scheduledFuture.cancel(false));
@@ -156,7 +166,7 @@ public class EC2Worker implements Worker {
 
 		// submit the task into a queue
 		queue.add(qt);
-		logger.info("Added task {}-{} to queue", qt.jobName(), qt.taskName());
+		//logger.info("Added task {}-{} to queue", qt.jobName(), qt.taskName());
 		return future;
 	}
 
@@ -187,12 +197,6 @@ public class EC2Worker implements Worker {
 		public String jobName() {
 			return job.getName();
 		}
-
-
-		public String jobImage() {
-			return FilenameUtils.getBaseName(job.getImage());
-		}
-
 
 		public String taskName() {
 			return taskData.name();

@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import proiect_licenta.planner.archive.ArchiveManager;
 import proiect_licenta.planner.archive.ZipManager;
-import proiect_licenta.planner.helper.FileDeleter;
+import proiect_licenta.planner.helper.TempDir;
 import proiect_licenta.planner.storage.Storage;
 
 import java.io.IOException;
@@ -26,17 +26,19 @@ public class StorageDataset implements Dataset {
 		logger.info("create dataset: {}", objectName);
 		this.objectName = objectName;
 		// create temporary directory
-		String tempDir = Files.createTempDirectory("dataset-" + objectName).toAbsolutePath().toString();
+		TempDir tempDir = new TempDir("dataset-" + objectName);
 		// put the object in the temporary directory
-		getArchive(storage, objectName, tempDir);
+
+		logger.info("get archive: {}", tempDir);
+		getArchive(storage, objectName, tempDir.getDir());
 		// take the tasks
 
-		try (var stream = Files.list(Paths.get(tempDir))) {
+		try (var stream = Files.list(Paths.get(tempDir.getDir()))) {
 			this.tasks = getTasks(stream);
 		}
 
 		// clear the temporary directory
-		FileDeleter.deleteAllFilesInFolder(tempDir);
+		tempDir.delete();
 
 
 	}
@@ -58,9 +60,9 @@ public class StorageDataset implements Dataset {
 
 		for (TaskData taskData : tasks) {
 			// save the task
-			String taskPath = path + "/" + taskData.name() + ".zip";
-			Files.createFile(Paths.get(taskPath));
-			try (var stream = Files.newOutputStream(Paths.get(taskPath))) {
+			var taskPath = Paths.get(path + "/" + taskData.name() + ".zip");
+			Files.createFile(taskPath);
+			try (var stream = Files.newOutputStream(taskPath)) {
 				stream.write(taskData.data());
 
 			}
@@ -70,8 +72,9 @@ public class StorageDataset implements Dataset {
 
 	private void getArchive(Storage storage, String objectName, String destinationDir) throws IOException {
 		String archivePath = destinationDir + "/" + objectName;
+		logger.info("getArchive: {}", archivePath);
 		// load the archive into local storage
-		storage.get(objectName, archivePath);
+		storage.get(objectName, archivePath).join();
 		// extract the archive
 		ArchiveManager archiveManager = new ZipManager();
 		archiveManager.extractArchive(archivePath, destinationDir);

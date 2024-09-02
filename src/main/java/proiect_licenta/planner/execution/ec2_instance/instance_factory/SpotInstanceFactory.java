@@ -59,28 +59,34 @@ public class SpotInstanceFactory {
 				.build();
 	}
 
-	public List<InstanceWrapper> createInstances(int vcpuCount) {
+	public List<InstanceWrapper> createInstances(int vcpuCount) throws RuntimeException {
+		// get launch template wrapper
 		FleetLaunchTemplateSpecificationRequest fleetLaunchTemplateSpecificationRequest = FleetLaunchTemplateSpecificationRequest.builder()
 				.launchTemplateName(launchTemplateWrapper.name())
 				.version("$Latest")
 				.build();
 
-
+		// get template override with weighted capacity
 		List<FleetLaunchTemplateOverridesRequest> fleetLaunchTemplateOverridesRequest = configurations
 				.stream()
 				.map(this::getOverride)
 				.toList();
+
+		//
 		FleetLaunchTemplateConfigRequest fleetLaunchTemplateConfigRequest = FleetLaunchTemplateConfigRequest.builder()
 				.launchTemplateSpecification(fleetLaunchTemplateSpecificationRequest)
 				.overrides(fleetLaunchTemplateOverridesRequest)
 				.build();
 
+
+		// set target capacity
 		TargetCapacitySpecificationRequest targetCapacitySpecificationRequest = TargetCapacitySpecificationRequest.builder()
 				.totalTargetCapacity(vcpuCount)
 				.defaultTargetCapacityType(DefaultTargetCapacityType.SPOT)
+				//.targetCapacityUnitType(TargetCapacityUnitType.VCPU)
 				.build();
 
-
+		// set options
 		SpotOptionsRequest spotOptionsRequest = SpotOptionsRequest.builder()
 				.allocationStrategy(SpotAllocationStrategy.LOWEST_PRICE)
 				.instanceInterruptionBehavior(SpotInstanceInterruptionBehavior.TERMINATE)

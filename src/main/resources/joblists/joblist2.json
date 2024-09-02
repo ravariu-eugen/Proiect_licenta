@@ -1,0 +1,19 @@
+{
+  "jobs": [
+    {
+      "name": "job4",
+      "description": "job 3 description",
+      "type": "Compute",
+      "image": "longtask.zip",
+      "shared": [
+        {
+          "file": "config1.zip",
+          "name": "config"
+        }
+      ],
+      "output": [
+        "output5.zip"
+      ]
+    }
+  ]
+}

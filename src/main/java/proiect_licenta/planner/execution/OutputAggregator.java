@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.archive.ArchiveManager;
 import proiect_licenta.planner.archive.ZipManager;
 import proiect_licenta.planner.dataset.NullDataset;
+import proiect_licenta.planner.helper.TempDir;
 import proiect_licenta.planner.storage.Storage;
 import proiect_licenta.planner.task.TaskComplete;
 import proiect_licenta.planner.task.TaskError;
@@ -26,18 +27,10 @@ public class OutputAggregator {
 	private static final Logger logger = LogManager.getLogger();
 	private static int id;
 	private final ArchiveManager archiveManager = new ZipManager();
-	private String tempJobDir;
+	private TempDir tempJobDir;
 	private boolean isNull;
 
 	public OutputAggregator() {
-		try {
-			// create a temporary folder to store and aggregate the results
-			tempJobDir = Files.createTempDirectory("temp").toAbsolutePath().toString();
-
-			tempJobDir = Files.createDirectory(Paths.get("tmp" + id++)).toAbsolutePath().toString();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 
@@ -75,27 +68,28 @@ public class OutputAggregator {
 	 * @param storage the storage to use for creating output archives
 	 * @param outputs the list of output names to create archives for
 	 */
-	public void mergeResults(List<TaskResult> results, Storage storage, List<String> outputs) {
+	public void mergeResults(List<TaskResult> results, Storage storage, List<String> outputs) throws IOException {
+		tempJobDir = new TempDir("job-" + id++);
 		if (results.isEmpty()) {
 			return;
 		}
-		if (results.getFirst() instanceof TaskComplete taskComplete) {
-			if (taskComplete.name().equals("null")) {
-				isNull = true;
-			}
+		if (results.getFirst().name().equals("null")) {
+			isNull = true;
 		}
 
 		// extract results into temp folder
 		extractResults(results);
 		// create output archives
 		createOutputs(storage, outputs);
+
+		tempJobDir.delete();
 	}
 
 	private void extractTask(TaskComplete taskComplete) {
 		logger.debug("Result: {}", taskComplete.toString());
 		byte[] data = taskComplete.resultData();
 		try {
-			archiveManager.extractArchive(new ByteArrayInputStream(data), tempJobDir);
+			archiveManager.extractArchive(new ByteArrayInputStream(data), tempJobDir.getDir());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -108,12 +102,12 @@ public class OutputAggregator {
 	 * @param storage the storage to use for creating output archives
 	 * @param outputs the list of output names to create archives for
 	 */
-	private void createOutputs(Storage storage, List<String> outputs) {
+	private void createOutputs(Storage storage, List<String> outputs) throws IOException {
 		if (outputs.size() == 1) {
 			// single output
 			String output = outputs.getFirst();
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			Path jobDirectoryPath = Paths.get(tempJobDir);
+			Path jobDirectoryPath = tempJobDir.getPath();
 			if (isNull) {
 				jobDirectoryPath = jobDirectoryPath.resolve(NullDataset.NAME);
 			}
@@ -123,38 +117,40 @@ public class OutputAggregator {
 		} else {
 
 			Path outputSource;
+			TempDir outputTempDir = null;
 
 			if (isNull) {
 				// remove null folder from path
-				outputSource = Paths.get(tempJobDir, "null");
+				outputSource = Paths.get(tempJobDir.getDir(), "null");
 
 			} else {
-				try (var allFiles = Files.walk(Path.of(tempJobDir))) {
+				try (var allFiles = Files.walk(tempJobDir.getPath())) {
 
-					String outputTempDir = Files.createTempDirectory("output").toAbsolutePath().toString();
+					outputTempDir = new TempDir("output");
 					//String outputTempDir =  "results";
-					outputSource = Paths.get(outputTempDir);
-
+					outputSource = outputTempDir.getPath();
+					var dir = outputTempDir.getDir();
 
 					allFiles.filter(Files::isRegularFile)
-							.forEach(file -> aggregateOutputs(file, tempJobDir, outputTempDir));
+							.forEach(file -> aggregateOutputs(file, tempJobDir.getDir(), dir));
 
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
-
 			}
 
 			// create output archives
 			outputs.forEach(output -> {
 				String name = FilenameUtils.getBaseName(output);
-				//logger.info("Creating output {}", name);
+				logger.info("Creating output {}", name);
 				ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 				archiveManager.addFolder(outputSource.resolve(name).toString(), outputStream);
 				storage.putBytes(output, outputStream.toByteArray());
 			});
 
-
+			if (outputTempDir != null) {
+				outputTempDir.delete();
+			}
 			// multiple outputs
 
 		}

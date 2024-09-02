@@ -9,7 +9,7 @@ import proiect_licenta.planner.archive.ZipManager;
 import proiect_licenta.planner.cli.PlannerCLI;
 import proiect_licenta.planner.helper.FileDeleter;
 import proiect_licenta.planner.helper.Helper;
-import proiect_licenta.planner.jobs.joblist.JobList;
+import proiect_licenta.planner.jobs.JobList;
 import proiect_licenta.planner.storage.Storage;
 
 import java.io.File;
@@ -19,12 +19,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class TestRun {
 	private static final Logger logger = LogManager.getLogger();
 
-	private final ArchiveManager manager = new ZipManager();
+	private static final ArchiveManager manager = new ZipManager();
 
 	private final Storage storage;
 
@@ -34,31 +35,61 @@ public class TestRun {
 	}
 
 	public static void main(String[] args) {
-
-
-		String[] args2 = new String[1];
-		args2[0] = "-h";
-		System.out.println(Arrays.toString(args2));
-
-		int exitCode = new CommandLine(new PlannerCLI()).execute(args2);
-		System.exit(exitCode);
+		prepareArchives();
+		String testPath = "src/main/resources/joblists/tests";
+		File dir = new File(testPath);
+		var files = Arrays.stream(Objects.requireNonNull(dir.listFiles()))
+				.map(file -> "tests\\" + file.getName()).toList();
+		files.forEach(TestRun::runJoblist);
+		//runJoblist("joblist3.json");
 	}
 
-	private void prepareArchives() {
+	private static void runJoblist(String name) {
+		String[] args2 = {
+				//"-h",
+				"-l=arch",
+				"--aws=Secrets/aws_credentials_file",
+				"E:\\Facultate\\anul4\\proiect\\Proiect_licenta\\src\\main\\resources\\joblists\\" + name,};
+		System.out.println(Arrays.toString(args2));
+		int exitCode = new CommandLine(new PlannerCLI()).execute(args2);
+	}
+
+
+	private static void prepareArchives() {
 
 		FileDeleter.deleteAllFilesInFolder("arch");
 		// code archives
-
+		String tasksFolder = "../data/test_tasks";
+		String dataFolder = "../data/test_data";
+		String archFolder = "arch";
 		List<String> tasks = List.of(
-				"number_multiplier", "copy", "longtask"
+				"number_multiplier",
+				"copy",
+				"longtask",
+				"null_singleOutput",
+				"matmul"
 		);
 
 		List<String> data = List.of(
-				"numbers"
+				"numbers",
+				"config1",
+				"config2",
+				"config3",
+				"config4",
+				"test_matrices_split_1",
+				"test_matrices_split_2",
+				"test_matrices_split_5",
+				"test_matrices_split_10",
+				"test_matrices_split_25",
+				"test_matrices_split_50",
+				"test_matrices_split_100",
+				"matrix"
 		);
-		tasks.forEach(task -> manager.archiveFolder("data/test_tasks/" + task, "arch/" + task + ".zip"));
+		System.out.println(tasks);
+		System.out.println(data);
+		tasks.forEach(task -> manager.archiveFolder(tasksFolder + "/" + task, archFolder + "/" + task + ".zip"));
 
-		data.forEach(task -> manager.archiveFolder("data/test_data/" + task, "arch/" + task + ".zip"));
+		data.forEach(task -> manager.archiveFolder(dataFolder + "/" + task, archFolder + "/" + task + ".zip"));
 
 	}
 
@@ -97,7 +128,7 @@ public class TestRun {
 		}
 
 		Path directory = Paths.get(destination);
-		var files = storage.listObjects();
+		var files = storage.listObjects().join();
 		for (String file : files) {
 			storage.get(file, directory.resolve(file).toString());
 		}
@@ -113,7 +144,7 @@ public class TestRun {
 		// 1. load data into storage
 		logger.info("Loading data into storage");
 		loadData();
-		logger.info("Storage objects: {}", storage.listObjects());
+		logger.info("Storage objects: {}", storage.listObjects().join());
 
 
 		// 2. load job lists
@@ -129,7 +160,7 @@ public class TestRun {
 
 		// 4. get results from storage
 		logger.info("Getting results from storage");
-		logger.info("Storage objects: {}", storage.listObjects());
+		logger.info("Storage objects: {}", storage.listObjects().join());
 		getStorage("results");
 	}
 

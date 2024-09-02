@@ -1,23 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO">
+<Configuration status="warn">
     <Properties>
-        <Property name="PID">%5X{pid}</Property>
-        <Property name="LOG_EXCEPTION_CONVERSION_WORD">%xEx</Property>
-        <Property name="LOG_LEVEL_PATTERN">%5p</Property>
-        <Property name="LOG_TIME">%d{yyyy-MM-dd HH:mm:ss.SSS}></Property>
-        <Property name="LOG_PATTERN">%style{${LOG_TIME}}{dim} %highlight{${LOG_LEVEL_PATTERN}} %style{${sys:PID}}{magenta} %style{---}{dim} %style{[%15.15t]}{dim} %style{%-40.40c{1.}}{cyan} %style{%22.22M}{magenta} %style{:}{red} %m%n${sys:LOG_EXCEPTION_CONVERSION_WORD}</Property>
+        <Property name="logPath">logs</Property>
+        <Property name="logFileName">app</Property>
+        <Property name="logLevel">info</Property>
+        <Property name="shortPattern">[%-5level] %-30.40c{1.} | %20.20M |- %msg%n</Property>
+        <Property name="logPattern">[%-5level] %d{HH:mm:ss.SSS} [%20.30t] %-30.40c{1.} | %20.20M |- %msg%n
+        </Property>
     </Properties>
     <Appenders>
-        <Console name="ConsoleAppender" target="SYSTEM_OUT" follow="true">
-            <PatternLayout pattern="${LOG_PATTERN}" />
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${logPattern}"/>
         </Console>
+        <RollingFile name="RollingFileAppender" fileName="logs/app.log"
+                     filePattern="logs/logs-%d{yyyyMMdd}/app-%d{HH-mm-ss}-%i.log">
+            <PatternLayout pattern="${shortPattern}"/>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+        </RollingFile>
     </Appenders>
     <Loggers>
-        <logger name="com.github.daggerok" level="INFO" additivity="false">
-            <appender-ref ref="ConsoleAppender"/>
-        </logger>
-        <Root level="ALL">
-            <AppenderRef ref="ConsoleAppender"/>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileAppender"/>
         </Root>
     </Loggers>
 </Configuration>

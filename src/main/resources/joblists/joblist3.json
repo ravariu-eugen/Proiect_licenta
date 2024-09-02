@@ -1,0 +1,25 @@
+{
+  "jobs": [
+    {
+      "name": "matmul",
+      "description": "job 3 description",
+      "type": "Compute",
+      "image": "matmul.zip",
+      "input": "test_matrices_split_10.zip",
+      "shared": [
+        {
+          "file": "config4.zip",
+          "name": "config"
+        },
+        {
+          "file": "matrix.zip",
+          "name": "matrix"
+        }
+      ],
+      "output": [
+        "output5.zip"
+      ]
+    }
+  ],
+  "vcpu_count": 16
+}

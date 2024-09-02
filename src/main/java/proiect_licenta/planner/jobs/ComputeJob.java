@@ -14,6 +14,8 @@ import proiect_licenta.planner.task.Task;
 import proiect_licenta.planner.task.TaskResult;
 import software.amazon.awssdk.utils.Pair;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -32,7 +34,7 @@ public class ComputeJob extends Job {
 	private final Map<String, String> requirements;
 	private WorkerPool workerPool;
 	private List<CompletableFuture<TaskResult>> results;
-	private CompletableFuture<Void> future;
+	private CompletableFuture<Boolean> future;
 
 	public ComputeJob(String name, String description, Storage storage,
 	                  String image,
@@ -55,12 +57,11 @@ public class ComputeJob extends Job {
 	}
 
 	@Override
-	public void launch() {
+	public CompletableFuture<Boolean> launch() {
 		logger.info("Launching processing job {} with input data set {}", name, input);
 		future = CompletableFuture.supplyAsync(() -> {
 			// load job dataset
 			Instant start = Instant.now();
-			logger.info("Launching processing job {}", name);
 			Dataset inputDataset;
 			try {
 				if (input == null) // no input
@@ -91,20 +92,30 @@ public class ComputeJob extends Job {
 					.toList();
 			logger.info("Finished processing {} tasks", taskResults.size());
 			OutputAggregator aggregator = new OutputAggregator();
-			aggregator.mergeResults(taskResults, storage, outputs);
+			try {
+				aggregator.mergeResults(taskResults, storage, outputs);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 			logger.info("Finished processing job {}", name);
 			Instant end = Instant.now();
 
 
 			logger.info("Total time in {}ms", end.toEpochMilli() - start.toEpochMilli());
-
-			return null;
+			saveTime((int) (end.toEpochMilli() - start.toEpochMilli()));
+			return true;
 		});
+		return future;
 	}
 
-	@Override
-	public void waitUntilFinished() {
-		future.join();
+
+	private void saveTime(int timeMilli) {
+		try (FileWriter fileWriter = new FileWriter(name + ".txt", true);
+		     BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+			bufferedWriter.write(timeMilli + ", ");
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -121,7 +132,9 @@ public class ComputeJob extends Job {
 	@Override
 	public List<String> getDependencies() {
 		List<String> dependencies = new ArrayList<>(shared.size() + 1);
-		dependencies.add(input);
+		if (input != null) {
+			dependencies.add(input);
+		}
 		dependencies.addAll(sharedFilenames());
 		return dependencies;
 	}

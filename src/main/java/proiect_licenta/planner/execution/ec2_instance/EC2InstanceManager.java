@@ -8,6 +8,7 @@ import proiect_licenta.planner.execution.analysis.InstanceConfiguration;
 import proiect_licenta.planner.execution.ec2_instance.instance_factory.InstanceWrapper;
 import proiect_licenta.planner.execution.ec2_instance.instance_factory.SpotInstanceFactory;
 import proiect_licenta.planner.execution.worker.Worker;
+import proiect_licenta.planner.execution.worker.WorkerState;
 import proiect_licenta.planner.helper.AmiMap;
 import proiect_licenta.planner.helper.ClientHelper;
 import proiect_licenta.planner.helper.Helper;
@@ -31,21 +32,23 @@ public class EC2InstanceManager implements WorkerManager {
 	private final Ec2Client client;
 	private final String managerName;
 	private final SpotInstanceFactory instanceFactory;
-
 	private final Map<String, EC2Worker> workers = new HashMap<>(); // <1>
 
 
 	public EC2InstanceManager(Region region, String managerName, List<InstanceConfiguration> configurations) {
 		this.managerName = managerName;
+		// create client
 		client = ClientHelper.createEC2Client(region);
-
+		// create keyPairWrapper
 		KeyPairWrapper keyPairWrapper = new KeyPairWrapper(client, "key", "rsa");
+		// create securityGroupWrapper
 		SecurityGroupWrapper securityGroupWrapper = new SecurityGroupWrapper(client, "sg", "sg");
 		securityGroupWrapper.authorizeIngress(Helper.myIP());
 		securityGroupWrapper.authorizeAll(); // TODO: remove
+		// create launchTemplateWrapper
 		LaunchTemplateWrapper launchTemplateWrapper = new LaunchTemplateWrapper(
 				client,
-				"launchTemplateTest",
+				"launchTemplate_" + managerName,
 				AmiMap.getAmi(client.serviceClientConfiguration().region()),
 				keyPairWrapper.getKeyName(),
 				securityGroupWrapper.getSecurityGroupID(),
@@ -58,6 +61,10 @@ public class EC2InstanceManager implements WorkerManager {
 		clearRemainingInstances();
 
 		this.instanceFactory = new SpotInstanceFactory(client, configurations, launchTemplateWrapper);
+	}
+
+	private static boolean isTerminated(Instance instance) {
+		return IS_TERMINATED.contains(instance.state().toString());
 	}
 
 	/**
@@ -86,22 +93,27 @@ public class EC2InstanceManager implements WorkerManager {
 	/**
 	 * updates the list of instances
 	 */
-	private void updateInstances() {
+	private void simulatedInterruptions() {
+		var terminatedWorkerIDs = workers.entrySet().stream().filter(e -> e.getValue().getState() == WorkerState.TERMINATED).map(Map.Entry::getKey).toList();
+
+		terminate(terminatedWorkerIDs);
+	}
+
+
+	public void updateInstances() {
 		logger.debug("updateInstances");
-
-
-		DescribeInstancesRequest request = DescribeInstancesRequest.builder()
-				.instanceIds(getInstancesIds())
-				.build();
-
-		DescribeInstancesResponse response = client.describeInstances(request);
-
+		// for simulated interruptions
+		//simulatedInterruptions();
+		// request instances with the current ids
+		DescribeInstancesResponse response = client.describeInstances(
+				r -> r.instanceIds(getInstancesIds())
+		);
 		var newInstances = response.reservations().getFirst().instances();
 		newInstances.forEach(instance -> logger.info("Instance: {} {}", instance.instanceId(), instance.state()));
 
 
 		Map<Boolean, List<Instance>> partitionedInstances = newInstances.stream()
-				.collect(Collectors.partitioningBy(instance -> IS_TERMINATED.contains(instance.state().toString())));
+				.collect(Collectors.partitioningBy(EC2InstanceManager::isTerminated));
 
 		List<Instance> activeInstances = partitionedInstances.get(false);
 		List<Instance> terminatedInstances = partitionedInstances.get(true);
@@ -116,13 +128,13 @@ public class EC2InstanceManager implements WorkerManager {
 
 
 		if (!terminatedInstances.isEmpty()) {
-			int terminatedVcpu = terminatedInstances.stream().map(instance -> instances.get(instance.instanceId()).vcpuCount()).reduce(0, Integer::sum);
-
-			logger.debug("createWorkers: {}", terminatedVcpu);
-			createWorkers(terminatedVcpu);
+			int terminatedVcpuCount = terminatedInstances.stream().map(
+					instance -> instances.get(instance.instanceId()).vcpuCount()
+			).reduce(0, Integer::sum);
+			logger.debug("createWorkers: {}", terminatedVcpuCount);
+			createWorkers(terminatedVcpuCount);
 		}
 	}
-
 
 	/**
 	 * @return the list of instance ids for each instance
@@ -189,7 +201,7 @@ public class EC2InstanceManager implements WorkerManager {
 	private void terminate() {
 		logger.info("terminateAll");
 		terminate(getInstancesIds());
-		workers.values().forEach(EC2Worker::terminate);
+		getWorkers().forEach(Worker::terminate);
 		logger.info("terminatedAll");
 	}
 

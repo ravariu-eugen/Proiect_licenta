@@ -35,14 +35,11 @@ public class RenameJob extends Job {
 	}
 
 	@Override
-	public void launch() {
+	public CompletableFuture<Boolean> launch() {
 		future = storage.rename(inputDataSet, outputDataSet);
+		return future;
 	}
 
-	@Override
-	public void waitUntilFinished() {
-		future.join();
-	}
 
 	@Override
 	public Pair<Integer, Integer> getProgress() {

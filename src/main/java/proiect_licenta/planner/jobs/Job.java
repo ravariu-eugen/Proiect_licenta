@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class Job {
 
@@ -52,10 +53,8 @@ public abstract class Job {
 		return !Collections.disjoint(dependenciesSet, outputsSet);
 	}
 
-	public abstract void launch();
-
-	public abstract void waitUntilFinished();
-
+	public abstract CompletableFuture<Boolean> launch();
+	
 	public abstract Pair<Integer, Integer> getProgress();
 
 	public enum JobType {

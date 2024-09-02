@@ -9,11 +9,9 @@ import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -40,22 +38,26 @@ public class BucketStorage implements Storage {
 
 	@Override
 	public CompletableFuture<Boolean> objectExists(String objectName) {
-		return objectsExist(List.of(objectName));
+		return objectsExist(List.of(objectName)).thenApply(List::getFirst);
 	}
 
 	@Override
-	public boolean objectsExist(List<String> objectNames) {
-		return new HashSet<>(listObjects()).containsAll(objectNames);
+	public CompletableFuture<List<Boolean>> objectsExist(List<String> objectNames) {
+		return CompletableFuture.supplyAsync(() -> {
+			var objects = listObjects().join();
+
+			return objectNames.stream().map(objects::contains).toList();
+
+
+		});
 	}
 
 	@Override
-	public boolean put(String fileName, String objectName) {
-		PutObjectResponse response = client.putObject(
+	public CompletableFuture<Boolean> put(String fileName, String objectName) {
+		return client.putObject(
 				b -> b.bucket(name).key(objectName),
 				Paths.get(fileName)
-		);
-		logger.info(response.sdkHttpResponse().statusCode());
-		return response.sdkHttpResponse().isSuccessful();
+		).thenApply(r -> r.sdkHttpResponse().isSuccessful());
 	}
 
 	@Override
@@ -90,7 +92,9 @@ public class BucketStorage implements Storage {
 		}
 
 		return copy(initialObjectName, copyObjectName)
-				.thenCompose(success -> success ? delete(initialObjectName) : CompletableFuture.completedFuture(false));
+				.thenCompose(success ->
+						success ? delete(initialObjectName)
+								: CompletableFuture.completedFuture(false));
 
 
 	}
@@ -105,7 +109,9 @@ public class BucketStorage implements Storage {
 
 	@Override
 	public CompletableFuture<byte[]> getBytes(String objectName) {
-		return client.getObject(b -> b.bucket(name).key(objectName), AsyncResponseTransformer.toBytes()).thenApply(BytesWrapper::asByteArray);
+		return client.getObject(b -> b.bucket(name).key(objectName),
+						AsyncResponseTransformer.toBytes())
+				.thenApply(BytesWrapper::asByteArray);
 	}
 
 

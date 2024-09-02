@@ -40,17 +40,9 @@ public class CopyJob extends Job {
 	}
 
 	@Override
-	public void launch() {
+	public CompletableFuture<Boolean> launch() {
 		future = storage.copy(inputDataSet, outputDataSet);
-	}
-
-	@Override
-	public void waitUntilFinished() {
-		try {
-			future.join();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		return future;
 	}
 
 	@Override

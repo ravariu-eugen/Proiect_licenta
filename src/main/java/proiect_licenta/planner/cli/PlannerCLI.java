@@ -5,11 +5,13 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import proiect_licenta.planner.helper.ClientHelper;
-import proiect_licenta.planner.jobs.joblist.JobList;
+import proiect_licenta.planner.jobs.JobList;
 import proiect_licenta.planner.storage.BucketStorage;
 import proiect_licenta.planner.storage.LocalStorage;
 import proiect_licenta.planner.storage.Storage;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -22,10 +24,10 @@ public class PlannerCLI implements Callable<Integer> {
 	@Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help message and exit")
 	private boolean help;
 
-	@Option(names = {"-b", "--bucket"}, description = "The name of the S3 bucket; at least one of --bucket and --local must be specified")
+	@Option(names = {"-b", "--bucket"}, description = "The name of the S3 bucket; exactly one of --bucket and --local must be specified")
 	private String bucketName;
 
-	@Option(names = {"-l", "--local"}, description = "The name of the local folder; at least one of --bucket and --local must be specified")
+	@Option(names = {"-l", "--local"}, description = "The name of the local folder; exactly one of --bucket and --local must be specified")
 	private String localFolder;
 
 	@CommandLine.Parameters(arity = "0..", description = "The paths of the joblists")
@@ -35,14 +37,22 @@ public class PlannerCLI implements Callable<Integer> {
 	@Option(names = {"-a", "--aws"}, description = "The name of the AWS credentials file", required = true)
 	private String awsCredentialsFile;
 
+	private String readFile(String path) {
+		try {
+			return Files.readString(Paths.get(path));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	public List<JobList> loadJobLists(Storage storage) {
-
+		System.out.println(jobListPaths);
 
 		return jobListPaths.parallelStream()
 				.map(Paths::get)
 				.map(Path::toAbsolutePath)
-				.map(path -> JobList.createJobList(path.toString(), storage))
+				.map(path -> readFile(path.toString()))
+				.map(json -> JobList.createJobList(json, storage))
 				.toList();
 
 
@@ -73,6 +83,11 @@ public class PlannerCLI implements Callable<Integer> {
 				? new BucketStorage(bucketName)
 				: new LocalStorage(localFolder);
 
+		if (jobListPaths == null) {
+
+			storage.listObjects().join().forEach(System.out::println);
+			return 0;
+		}
 
 		List<JobList> jobLists = loadJobLists(storage);
 

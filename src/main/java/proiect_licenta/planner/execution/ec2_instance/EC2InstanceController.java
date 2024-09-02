@@ -1,5 +1,6 @@
 package proiect_licenta.planner.execution.ec2_instance;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
@@ -9,6 +10,8 @@ import org.jetbrains.annotations.NotNull;
 import proiect_licenta.planner.dataset.TaskData;
 import proiect_licenta.planner.execution.ec2_instance.instance_factory.InstanceWrapper;
 import proiect_licenta.planner.execution.worker.WorkerMetrics;
+import proiect_licenta.planner.jobs.ComputeJob;
+import proiect_licenta.planner.jobs.requirements.FileNameMapping;
 import proiect_licenta.planner.storage.Storage;
 import proiect_licenta.planner.task.TaskComplete;
 import proiect_licenta.planner.task.TaskError;
@@ -41,23 +44,34 @@ public class EC2InstanceController {
 				.build();
 	}
 
-	private static @NotNull RequestBody sendTaskBody(TaskData taskData, String jobName, String imageName) {
+	private static @NotNull RequestBody sendTaskBody(TaskData taskData, String jobName, String imageName, List<FileNameMapping> mappings) throws JsonProcessingException {
 		return new MultipartBody.Builder()
 				.setType(MultipartBody.FORM)
 				.addFormDataPart("file", taskData.name() + ".zip",
 						RequestBody.create(taskData.data(), MediaType.parse("application/octet-stream")))
 				.addFormDataPart("job", jobName)
 				.addFormDataPart("image", imageName)
+				.addFormDataPart("mappings", new ObjectMapper().writeValueAsString(mappings))
 				.build();
 	}
 
-	public void sendTask(String imageName, String jobName, TaskData taskData) {
-		logger.debug("Send task {} {} {}", taskData.name(), jobName, imageName);
+	public void sendTask(ComputeJob job, TaskData taskData) {
+		String jobName = job.getName();
+		String imageName = job.imageName();
+		List<FileNameMapping> mappings = job.getShared();
 
-		Request request = new Request.Builder()
-				.url(instanceURL() + "/tasks")
-				.post(sendTaskBody(taskData, jobName, imageName))
-				.build();
+
+		logger.debug("Send task {} {} {}", taskData.name(), job.getName(), job.getImage());
+		// send job name, job image and list of shared file-name pairs
+		Request request = null;
+		try {
+			request = new Request.Builder()
+					.url(instanceURL() + "/tasks")
+					.post(sendTaskBody(taskData, jobName, imageName, mappings))
+					.build();
+		} catch (JsonProcessingException e) {
+			throw new RuntimeException(e);
+		}
 
 		try (Response response = client.newCall(request).execute()) {
 			if (response.isSuccessful()) {
@@ -65,8 +79,6 @@ public class EC2InstanceController {
 			} else {
 				logger.error("Send task ERROR {} {}", response.code(), response.body().string());
 			}
-
-
 		} catch (IOException e) {
 			logger.error(e.toString());
 			throw new RuntimeException(e);
@@ -120,7 +132,7 @@ public class EC2InstanceController {
 		try (Response response = client.newCall(request).execute()) {
 			switch (response.code()) {
 				case 200:
-					logger.info("complete result {} {}", jobName, taskName);
+					logger.debug("complete result {} {}", jobName, taskName);
 					byte[] bytes = response.body().bytes();
 					return new TaskComplete(taskName, bytes);
 				case 204:
@@ -164,7 +176,7 @@ public class EC2InstanceController {
 		}
 
 
-		var data = storage.getBytes(name);
+		var data = storage.getBytes(name).join();
 		logger.debug("upload file {} {} {}", name, destination, data.length);
 
 		Request request = new Request.Builder()

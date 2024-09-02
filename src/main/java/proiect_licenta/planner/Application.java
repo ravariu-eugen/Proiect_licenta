@@ -3,6 +3,7 @@ package proiect_licenta.planner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proiect_licenta.planner.helper.Helper;
+import proiect_licenta.planner.helper.TempDir;
 import proiect_licenta.planner.storage.BucketStorage;
 import proiect_licenta.planner.storage.LocalStorage;
 import proiect_licenta.planner.testrun.TestRun;
@@ -32,10 +33,10 @@ public class Application {
 
 		bucketManager.put("numbers1.txt", "numbers1.txt");
 		logger.info(bucketManager.listObjects());
-		boolean deleted = bucketManager.delete("numbers1.txt");
+		boolean deleted = bucketManager.delete("numbers1.txt").join();
 		logger.info(deleted);
 		logger.info(bucketManager.listObjects());
-		deleted = bucketManager.delete("numbs1.txt");
+		deleted = bucketManager.delete("numbs1.txt").join();
 		logger.info(deleted);
 		logger.info(bucketManager.listObjects());
 		logger.info(bucketManager.objectExists("numbers.txt"));
@@ -45,8 +46,16 @@ public class Application {
 	public static void main(String[] args) {
 //		int exitCode = new CommandLine(new PlannerCLI()).execute(args);
 //		System.exit(exitCode);
-		var testRun = new TestRun(new LocalStorage());
-		testRun.run();
+		//System.out.println(Arrays.toString(args));
+		try {
+			var tempDir = new TempDir("ee");
+			var storage = new LocalStorage(tempDir.getDir());
+			var testRun = new TestRun(storage);
+			testRun.run();
+			tempDir.delete();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		//testRun.testFleet();
 
 

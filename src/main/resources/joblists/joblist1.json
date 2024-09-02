@@ -1,35 +1,47 @@
 {
-  "jobs" : [
+  "jobs": [
     {
-      "name" : "job1",
-      "description" : "job 1 description",
-      "type" : "Processing",
-      "image" : "copy.zip",
-      "input" : "numbers.zip",
-      "shared" : ["numbers.zip"],
-      "output" : ["dataSet2.zip"],
-      "requirements" : {
-        "cpu" : "1",
-        "memory" : "1"
+      "name": "job1",
+      "description": "job 1 description",
+      "type": "Compute",
+      "image": "copy.zip",
+      "input": "numbers.zip",
+      "shared": [
+        {
+          "file": "numbers.zip",
+          "name": "numbers"
+        }
+      ],
+      "output": [
+        "dataSet2.zip"
+      ],
+      "requirements": {
+        "cpu": "1",
+        "memory": "1"
       }
     },
     {
-      "name" : "job2",
-      "description" : "job 2 description",
-      "type" : "Processing",
-      "image" : "number_multiplier.zip",
-      "input" : "numbers.zip",
-      "shared" : [],
-      "output" : ["dataSet3.zip"]
+      "name": "job2",
+      "description": "job 2 description",
+      "type": "Compute",
+      "image": "number_multiplier.zip",
+      "input": "numbers.zip",
+      "shared": [],
+      "output": [
+        "dataSet3.zip"
+      ]
     },
     {
-      "name" : "job3",
-      "description" : "job 3 description",
-      "type" : "Processing",
-      "image" : "longtask.zip",
-      "input" : "numbers.zip",
-      "shared" : [],
-      "output" : ["output1.zip", "output2.zip"]
+      "name": "job3",
+      "description": "job 3 description",
+      "type": "Compute",
+      "image": "longtask.zip",
+      "input": "numbers.zip",
+      "shared": [],
+      "output": [
+        "output1.zip",
+        "output2.zip"
+      ]
     }
   ]
 }
